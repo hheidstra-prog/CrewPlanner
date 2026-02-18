@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId, requireAdmin } from "@/lib/auth";
 import { taskSchema } from "@/lib/validations/tasks";
 import type { ActionResult } from "@/lib/types";
-import { notifyAdmins, notifyMembers } from "@/lib/actions/notifications";
+import { notifyAdmins, notifyMembers, notifySpecificUsers } from "@/lib/actions/notifications";
+import { sendTaskAssignedEmail } from "@/lib/actions/emails";
 
 export async function createTask(formData: FormData): Promise<ActionResult> {
   try {
@@ -37,6 +38,24 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
       referenceId: task.id,
       actorId: userId,
     });
+
+    // If assigned, send specific notification + email
+    if (data.toegewezenAan) {
+      await notifySpecificUsers({
+        userIds: [data.toegewezenAan],
+        type: "TAAK_TOEGEWEZEN",
+        message: `Taak "${data.titel}" is aan jou toegewezen`,
+        referenceType: "TASK",
+        referenceId: task.id,
+        actorId: userId,
+      });
+
+      await sendTaskAssignedEmail({
+        taskId: task.id,
+        titel: data.titel,
+        assigneeId: data.toegewezenAan,
+      });
+    }
 
     revalidatePath("/taken");
     revalidatePath("/");

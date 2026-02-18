@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageSquare, CalendarCheck, Hand, CheckCircle2, Calendar, FileText, ClipboardList } from "lucide-react";
+import { MessageSquare, CalendarCheck, Hand, CheckCircle2, Calendar, FileText, ClipboardList, Bell, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { relatieveDatum } from "@/lib/utils";
 import { markAsRead } from "@/lib/actions/notifications";
@@ -15,6 +15,8 @@ const icons: Record<NotificationType, typeof MessageSquare> = {
   NIEUW_EVENEMENT: Calendar,
   NIEUW_BERICHT: FileText,
   NIEUWE_TAAK: ClipboardList,
+  HERINNERING: Bell,
+  TAAK_TOEGEWEZEN: UserCheck,
 };
 
 const iconColors: Record<NotificationType, string> = {
@@ -25,6 +27,8 @@ const iconColors: Record<NotificationType, string> = {
   NIEUW_EVENEMENT: "text-ocean",
   NIEUW_BERICHT: "text-navy",
   NIEUWE_TAAK: "text-twijfel",
+  HERINNERING: "text-twijfel",
+  TAAK_TOEGEWEZEN: "text-ocean",
 };
 
 const refPaths: Record<CommentParentType, string> = {

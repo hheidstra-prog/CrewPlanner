@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { UserAvatar } from "@/components/shared/user-avatar";
 import { TaskActions } from "@/components/tasks/task-actions";
 import { CommentThread } from "@/components/comments/comment-thread";
 import { DeleteTaskButton } from "@/components/tasks/delete-task-button";
@@ -28,9 +29,10 @@ export default async function TaakDetailPage({
 
   if (!task) notFound();
 
-  const claimedBy = task.geclaimdDoor
-    ? await resolveUser(task.geclaimdDoor)
-    : null;
+  const [claimedBy, assignedTo] = await Promise.all([
+    task.geclaimdDoor ? resolveUser(task.geclaimdDoor) : null,
+    task.toegewezenAan ? resolveUser(task.toegewezenAan) : null,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -69,7 +71,7 @@ export default async function TaakDetailPage({
           {task.beschrijving && (
             <p className="text-sm whitespace-pre-wrap">{task.beschrijving}</p>
           )}
-          {(task.deadline || claimedBy || task.afgerondOp) && (
+          {(task.deadline || claimedBy || assignedTo || task.afgerondOp) && (
             <>
               {task.beschrijving && <Separator />}
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -77,6 +79,17 @@ export default async function TaakDetailPage({
                   <span className="flex items-center gap-1.5">
                     <CalendarDays className="h-4 w-4" />
                     Deadline: {formatDatum(task.deadline)}
+                  </span>
+                )}
+                {assignedTo && (
+                  <span className="flex items-center gap-1.5">
+                    <UserAvatar
+                      imageUrl={assignedTo.imageUrl}
+                      initials={assignedTo.initials}
+                      fullName={assignedTo.fullName}
+                      size="sm"
+                    />
+                    Toegewezen aan: {assignedTo.fullName}
                   </span>
                 )}
                 {claimedBy && (
@@ -88,7 +101,7 @@ export default async function TaakDetailPage({
               </div>
             </>
           )}
-          {!task.beschrijving && !task.deadline && !claimedBy && !task.afgerondOp && (
+          {!task.beschrijving && !task.deadline && !claimedBy && !assignedTo && !task.afgerondOp && (
             <p className="text-sm text-muted-foreground">
               Geen extra details beschikbaar.
             </p>

@@ -18,11 +18,17 @@ import { createTask } from "@/lib/actions/tasks";
 import type { TaskGroup } from "@/generated/prisma";
 import { toast } from "sonner";
 
-interface TaskFormProps {
-  taskGroups: TaskGroup[];
+interface MemberOption {
+  id: string;
+  fullName: string;
 }
 
-export function TaskForm({ taskGroups }: TaskFormProps) {
+interface TaskFormProps {
+  taskGroups: TaskGroup[];
+  members?: MemberOption[];
+}
+
+export function TaskForm({ taskGroups, members }: TaskFormProps) {
   const router = useRouter();
 
   const action = async (_prev: unknown, formData: FormData) => {
@@ -87,6 +93,24 @@ export function TaskForm({ taskGroups }: TaskFormProps) {
             <Label htmlFor="deadline">Deadline (optioneel)</Label>
             <Input id="deadline" name="deadline" type="datetime-local" />
           </div>
+
+          {members && members.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="toegewezenAan">Toewijzen aan (optioneel)</Label>
+              <Select name="toegewezenAan">
+                <SelectTrigger>
+                  <SelectValue placeholder="Niemand" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" disabled={isPending}>

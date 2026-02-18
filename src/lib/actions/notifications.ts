@@ -77,6 +77,43 @@ export async function notifyMembers({
 }
 
 /**
+ * Create notifications for specific users (excluding the actor).
+ */
+export async function notifySpecificUsers({
+  userIds,
+  type,
+  message,
+  referenceType,
+  referenceId,
+  actorId,
+}: {
+  userIds: string[];
+  type: NotificationType;
+  message: string;
+  referenceType: CommentParentType;
+  referenceId: string;
+  actorId: string;
+}) {
+  try {
+    const targets = userIds.filter((id) => id !== actorId);
+    if (targets.length === 0) return;
+
+    await prisma.notification.createMany({
+      data: targets.map((userId) => ({
+        userId,
+        type,
+        message,
+        referenceType,
+        referenceId,
+        actorId,
+      })),
+    });
+  } catch (error) {
+    console.error("Failed to create targeted notifications:", error);
+  }
+}
+
+/**
  * Create notifications for all admins (except the actor who triggered it).
  */
 export async function notifyAdmins({

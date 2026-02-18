@@ -2,7 +2,6 @@
 
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,11 +16,14 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EVENT_TYPE_LABELS } from "@/lib/constants";
 import { createEvent, updateEvent } from "@/lib/actions/events";
-import type { Event, EventType } from "@/generated/prisma";
+import type { Event, EventType, EventHerinnering } from "@/generated/prisma";
+import { MemberPicker, type MemberOption } from "@/components/shared/member-picker";
 import { toast } from "sonner";
 
 interface EventFormProps {
-  event?: Event;
+  event?: Event & { herinneringen?: EventHerinnering[] };
+  members?: MemberOption[];
+  invitedUserIds?: string[];
 }
 
 function toDatetimeLocal(date: Date | string | null | undefined): string {
@@ -32,7 +34,21 @@ function toDatetimeLocal(date: Date | string | null | undefined): string {
   return local.toISOString().slice(0, 16);
 }
 
-export function EventForm({ event }: EventFormProps) {
+function getDefaultHerinnering(herinneringen?: EventHerinnering[]): string {
+  if (!herinneringen || herinneringen.length === 0) return "geen";
+  const dagen = herinneringen.map((h) => h.dagenVoorDeadline).sort((a, b) => a - b);
+  return dagen.join(",");
+}
+
+const HERINNERING_OPTIONS = [
+  { value: "geen", label: "Geen herinnering" },
+  { value: "3", label: "3 dagen voor deadline" },
+  { value: "5", label: "5 dagen voor deadline" },
+  { value: "7", label: "7 dagen voor deadline" },
+  { value: "3,7", label: "3 en 7 dagen voor deadline" },
+];
+
+export function EventForm({ event, members, invitedUserIds }: EventFormProps) {
   const router = useRouter();
   const isEditing = !!event;
 
@@ -142,6 +158,32 @@ export function EventForm({ event }: EventFormProps) {
               defaultValue={toDatetimeLocal(event?.deadlineBeschikbaarheid)}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="herinnering">Herinnering</Label>
+            <Select
+              name="herinnering"
+              defaultValue={getDefaultHerinnering(event?.herinneringen)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Geen herinnering" />
+              </SelectTrigger>
+              <SelectContent>
+                {HERINNERING_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {members && members.length > 0 && (
+            <MemberPicker
+              members={members}
+              defaultSelectedIds={invitedUserIds}
+            />
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" disabled={isPending}>

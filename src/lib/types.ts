@@ -1,8 +1,9 @@
-import type { Event, Beschikbaarheid, Post, Comment, Task, TaskGroup } from "@/generated/prisma";
+import type { Event, Beschikbaarheid, Post, Comment, Task, TaskGroup, EventUitnodiging } from "@/generated/prisma";
 import type { ResolvedUser } from "./users";
 
 export type EventWithBeschikbaarheid = Event & {
   beschikbaarheid: Beschikbaarheid[];
+  uitnodigingen: EventUitnodiging[];
 };
 
 export type EventWithDetails = EventWithBeschikbaarheid & {

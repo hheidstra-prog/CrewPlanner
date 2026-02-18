@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { TaskCard } from "@/components/tasks/task-card";
 import { getTasks } from "@/lib/queries/tasks";
 import { getCurrentUserId, isAdmin } from "@/lib/auth";
+import { resolveUsers } from "@/lib/users";
 import { TASK_STATUS_LABELS } from "@/lib/constants";
 import type { TaskStatus } from "@/generated/prisma";
 
@@ -16,6 +17,12 @@ export default async function TakenPage() {
     getCurrentUserId(),
     isAdmin(),
   ]);
+
+  // Resolve assignees for all tasks that have one
+  const assigneeIds = tasks
+    .map((t) => t.toegewezenAan)
+    .filter((id): id is string => !!id);
+  const assigneesMap = await resolveUsers(assigneeIds);
 
   const statuses: TaskStatus[] = ["OPEN", "OPGEPAKT", "AFGEROND"];
 
@@ -77,6 +84,11 @@ export default async function TakenPage() {
                     key={task.id}
                     task={task}
                     currentUserId={userId}
+                    assignee={
+                      task.toegewezenAan
+                        ? assigneesMap.get(task.toegewezenAan)
+                        : null
+                    }
                   />
                 ))
               )}

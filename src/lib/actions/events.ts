@@ -5,15 +5,37 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId, requireAdmin } from "@/lib/auth";
 import { eventSchema, beschikbaarheidSchema } from "@/lib/validations/events";
 import type { ActionResult } from "@/lib/types";
-import { notifyAdmins, notifyMembers } from "@/lib/actions/notifications";
+import { notifyAdmins, notifySpecificUsers } from "@/lib/actions/notifications";
 import { BESCHIKBAARHEID_LABELS } from "@/lib/constants";
 import type { BeschikbaarheidStatus } from "@/generated/prisma";
+import { clerkClient } from "@clerk/nextjs/server";
+import { sendEventInviteEmails } from "@/lib/actions/emails";
+
+async function getAllUserIds(): Promise<string[]> {
+  const client = await clerkClient();
+  const { data: users } = await client.users.getUserList({ limit: 100 });
+  return users.map((u) => u.id);
+}
+
+function parseHerinnering(value: string | undefined): number[] {
+  if (!value || value === "geen") return [];
+  return value
+    .split(",")
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((n) => !isNaN(n) && n > 0);
+}
 
 export async function createEvent(formData: FormData): Promise<ActionResult> {
   try {
     const userId = await requireAdmin();
     const raw = Object.fromEntries(formData);
     const data = eventSchema.parse(raw);
+
+    // Determine invited user IDs
+    const uitgenodigdenRaw = data.uitgenodigden?.trim();
+    const invitedIds = uitgenodigdenRaw
+      ? uitgenodigdenRaw.split(",").filter(Boolean)
+      : await getAllUserIds();
 
     const event = await prisma.event.create({
       data: {
@@ -27,15 +49,39 @@ export async function createEvent(formData: FormData): Promise<ActionResult> {
           ? new Date(data.deadlineBeschikbaarheid)
           : null,
         aangemaaaktDoor: userId,
+        uitnodigingen: {
+          create: invitedIds.map((uid) => ({ userId: uid })),
+        },
       },
     });
 
-    await notifyMembers({
+    // Create reminder records
+    const herinneringDagen = parseHerinnering(data.herinnering);
+    if (herinneringDagen.length > 0) {
+      await prisma.eventHerinnering.createMany({
+        data: herinneringDagen.map((dagen) => ({
+          eventId: event.id,
+          dagenVoorDeadline: dagen,
+        })),
+      });
+    }
+
+    // Notify invited users (in-app + email)
+    await notifySpecificUsers({
+      userIds: invitedIds,
       type: "NIEUW_EVENEMENT",
       message: `Nieuw evenement: "${data.titel}"`,
       referenceType: "EVENT",
       referenceId: event.id,
       actorId: userId,
+    });
+
+    await sendEventInviteEmails({
+      eventId: event.id,
+      titel: data.titel,
+      datum: new Date(data.datum),
+      locatie: data.locatie,
+      userIds: invitedIds.filter((id) => id !== userId),
     });
 
     revalidatePath("/evenementen");
@@ -52,6 +98,12 @@ export async function updateEvent(id: string, formData: FormData): Promise<Actio
     const raw = Object.fromEntries(formData);
     const data = eventSchema.parse(raw);
 
+    // Determine invited user IDs
+    const uitgenodigdenRaw = data.uitgenodigden?.trim();
+    const invitedIds = uitgenodigdenRaw
+      ? uitgenodigdenRaw.split(",").filter(Boolean)
+      : await getAllUserIds();
+
     await prisma.event.update({
       where: { id },
       data: {
@@ -66,6 +118,24 @@ export async function updateEvent(id: string, formData: FormData): Promise<Actio
           : null,
       },
     });
+
+    // Delete + recreate invitations
+    await prisma.eventUitnodiging.deleteMany({ where: { eventId: id } });
+    await prisma.eventUitnodiging.createMany({
+      data: invitedIds.map((uid) => ({ eventId: id, userId: uid })),
+    });
+
+    // Delete + recreate reminders
+    await prisma.eventHerinnering.deleteMany({ where: { eventId: id } });
+    const herinneringDagen = parseHerinnering(data.herinnering);
+    if (herinneringDagen.length > 0) {
+      await prisma.eventHerinnering.createMany({
+        data: herinneringDagen.map((dagen) => ({
+          eventId: id,
+          dagenVoorDeadline: dagen,
+        })),
+      });
+    }
 
     revalidatePath("/evenementen");
     revalidatePath(`/evenementen/${id}`);

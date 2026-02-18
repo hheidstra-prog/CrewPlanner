@@ -9,8 +9,23 @@ export async function getUpcomingEvents(type?: EventType) {
     },
     include: {
       beschikbaarheid: true,
+      uitnodigingen: true,
     },
     orderBy: { datum: "asc" },
+  });
+}
+
+export async function getPastEvents(type?: EventType) {
+  return prisma.event.findMany({
+    where: {
+      datum: { lt: new Date() },
+      ...(type ? { type } : {}),
+    },
+    include: {
+      beschikbaarheid: true,
+      uitnodigingen: true,
+    },
+    orderBy: { datum: "desc" },
   });
 }
 
@@ -19,6 +34,7 @@ export async function getAllEvents(type?: EventType) {
     where: type ? { type } : {},
     include: {
       beschikbaarheid: true,
+      uitnodigingen: true,
     },
     orderBy: { datum: "desc" },
   });
@@ -29,6 +45,8 @@ export async function getEventById(id: string) {
     where: { id },
     include: {
       beschikbaarheid: true,
+      uitnodigingen: true,
+      herinneringen: true,
     },
   });
 }
@@ -37,11 +55,15 @@ export async function getEventsNeedingResponse(userId: string) {
   const upcomingEvents = await prisma.event.findMany({
     where: {
       datum: { gte: new Date() },
+      uitnodigingen: {
+        some: { userId },
+      },
     },
     include: {
       beschikbaarheid: {
         where: { userId },
       },
+      uitnodigingen: true,
     },
     orderBy: { datum: "asc" },
   });
@@ -49,13 +71,17 @@ export async function getEventsNeedingResponse(userId: string) {
   return upcomingEvents.filter((e) => e.beschikbaarheid.length === 0);
 }
 
-export async function getNextEvent() {
+export async function getNextEvent(userId?: string) {
   return prisma.event.findFirst({
     where: {
       datum: { gte: new Date() },
+      ...(userId
+        ? { uitnodigingen: { some: { userId } } }
+        : {}),
     },
     include: {
       beschikbaarheid: true,
+      uitnodigingen: true,
     },
     orderBy: { datum: "asc" },
   });

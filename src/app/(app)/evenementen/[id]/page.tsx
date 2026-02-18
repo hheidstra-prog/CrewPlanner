@@ -29,8 +29,18 @@ export default async function EvenementDetailPage({
 
   if (!event) notFound();
 
-  const userIds = event.beschikbaarheid.map((b) => b.userId);
-  const usersMap = await resolveUsers(userIds);
+  // Access check: admin can always see, members only if invited
+  const invitedUserIds = event.uitnodigingen.map((u) => u.userId);
+  if (!admin && !invitedUserIds.includes(userId)) {
+    notFound();
+  }
+
+  // Resolve users: responders + invited non-responders
+  const allUserIds = [...new Set([
+    ...event.beschikbaarheid.map((b) => b.userId),
+    ...invitedUserIds,
+  ])];
+  const usersMap = await resolveUsers(allUserIds);
 
   const myResponse = event.beschikbaarheid.find((b) => b.userId === userId);
 
@@ -124,7 +134,7 @@ export default async function EvenementDetailPage({
               <CardTitle className="text-lg">
                 Beschikbaarheid{" "}
                 <span className="font-mono text-sm font-normal text-muted-foreground">
-                  ({event.beschikbaarheid.length})
+                  ({event.beschikbaarheid.length}/{invitedUserIds.length})
                 </span>
               </CardTitle>
             </CardHeader>
@@ -132,6 +142,7 @@ export default async function EvenementDetailPage({
               <AvailabilityOverview
                 beschikbaarheid={event.beschikbaarheid}
                 usersMap={usersMap}
+                invitedUserIds={invitedUserIds}
               />
             </CardContent>
           </Card>

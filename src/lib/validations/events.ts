@@ -8,6 +8,8 @@ export const eventSchema = z.object({
   eindtijd: z.string().optional(),
   locatie: z.string().max(200).optional(),
   deadlineBeschikbaarheid: z.string().optional(),
+  uitgenodigden: z.string().optional(), // comma-separated user IDs, empty = all
+  herinnering: z.string().optional(), // e.g. "3", "5", "7", "3,7"
 });
 
 export type EventFormData = z.infer<typeof eventSchema>;

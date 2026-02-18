@@ -52,6 +52,8 @@ enum NotificationType {
   NIEUW_EVENEMENT
   NIEUW_BERICHT
   NIEUWE_TAAK
+  HERINNERING
+  TAAK_TOEGEWEZEN
 }
 
 // ──────────────────────────────────
@@ -72,6 +74,8 @@ model Event {
   updatedAt              DateTime           @updatedAt
 
   beschikbaarheid        Beschikbaarheid[]
+  uitnodigingen          EventUitnodiging[]
+  herinneringen          EventHerinnering[]
 
   @@map("events")
 }
@@ -175,4 +179,26 @@ model Notification {
   @@index([userId, read])
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+model EventUitnodiging {
+  id      String @id @default(cuid())
+  eventId String
+  userId  String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("event_uitnodigingen")
+}
+
+model EventHerinnering {
+  id                String    @id @default(cuid())
+  eventId           String
+  dagenVoorDeadline Int
+  verzonden         Boolean   @default(false)
+  verzondenOp       DateTime?
+  event             Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, dagenVoorDeadline])
+  @@map("event_herinneringen")
 }
