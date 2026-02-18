@@ -1,0 +1,178 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────────────────────────────
+// Enums
+// ──────────────────────────────────
+
+enum EventType {
+  WEDSTRIJD
+  TRAINING
+  ONDERHOUD
+  SOCIAAL
+}
+
+enum BeschikbaarheidStatus {
+  BESCHIKBAAR
+  NIET_BESCHIKBAAR
+  TWIJFEL
+}
+
+enum PostCategorie {
+  WEDSTRIJDSCHEMA
+  REGLEMENTEN
+  BOOTINFO
+  ALGEMEEN
+}
+
+enum CommentParentType {
+  EVENT
+  POST
+  TASK
+}
+
+enum TaskStatus {
+  OPEN
+  OPGEPAKT
+  AFGEROND
+}
+
+enum NotificationType {
+  BESCHIKBAARHEID
+  COMMENT
+  TAAK_GECLAIMD
+  TAAK_AFGEROND
+  NIEUW_EVENEMENT
+  NIEUW_BERICHT
+  NIEUWE_TAAK
+}
+
+// ──────────────────────────────────
+// Models
+// ──────────────────────────────────
+
+model Event {
+  id                     String             @id @default(cuid())
+  type                   EventType
+  titel                  String
+  beschrijving           String?
+  datum                  DateTime
+  eindtijd               DateTime?
+  locatie                String?
+  deadlineBeschikbaarheid DateTime?
+  aangemaaaktDoor        String             // Clerk user ID
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  beschikbaarheid        Beschikbaarheid[]
+
+  @@map("events")
+}
+
+model Beschikbaarheid {
+  id              String                @id @default(cuid())
+  eventId         String
+  userId          String                // Clerk user ID
+  status          BeschikbaarheidStatus
+  reden           String?               // Required when NIET_BESCHIKBAAR
+  tijdstipReactie DateTime              @default(now())
+
+  event           Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("beschikbaarheid")
+}
+
+model Post {
+  id          String        @id @default(cuid())
+  titel       String
+  inhoud      String        // Rich text HTML
+  categorie   PostCategorie
+  gepind      Boolean       @default(false)
+  auteurId    String        // Clerk user ID
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  files       PostFile[]
+
+  @@map("posts")
+}
+
+model PostFile {
+  id        String   @id @default(cuid())
+  postId    String
+  url       String
+  fileName  String
+  fileSize  Int      // bytes
+  fileType  String   // MIME type
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_files")
+}
+
+model Comment {
+  id         String            @id @default(cuid())
+  parentType CommentParentType
+  parentId   String
+  auteurId   String            // Clerk user ID
+  inhoud     String
+  createdAt  DateTime          @default(now())
+
+  @@index([parentType, parentId])
+  @@map("comments")
+}
+
+model TaskGroup {
+  id           String   @id @default(cuid())
+  titel        String
+  beschrijving String?
+  createdAt    DateTime @default(now())
+
+  tasks        Task[]
+
+  @@map("task_groups")
+}
+
+model Task {
+  id              String     @id @default(cuid())
+  taskGroupId     String?
+  titel           String
+  beschrijving    String?
+  deadline        DateTime?
+  status          TaskStatus @default(OPEN)
+  toegewezenAan   String?    // Clerk user ID
+  geclaimdDoor    String?    // Clerk user ID
+  afgerondOp      DateTime?
+  aangemaaaktDoor String     // Clerk user ID
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  taskGroup       TaskGroup? @relation(fields: [taskGroupId], references: [id], onDelete: SetNull)
+
+  @@map("tasks")
+}
+
+model Notification {
+  id            String            @id @default(cuid())
+  userId        String            // Clerk user ID of recipient (admin)
+  type          NotificationType
+  message       String
+  referenceType CommentParentType // EVENT, POST, or TASK
+  referenceId   String
+  actorId       String            // Clerk user ID of who triggered it
+  read          Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
