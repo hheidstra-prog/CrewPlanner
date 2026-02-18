@@ -13,7 +13,7 @@ interface SearchInputProps {
 export function SearchInput({ placeholder = "Zoeken...", defaultValue }: SearchInputProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim();
