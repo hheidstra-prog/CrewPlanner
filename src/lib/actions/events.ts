@@ -87,7 +87,9 @@ export async function createEvent(formData: FormData): Promise<ActionResult> {
       eventId: event.id,
       titel: data.titel,
       datum: new Date(data.datum),
+      eindtijd: combineDateTime(data.datum, data.eindtijd),
       locatie: data.locatie,
+      beschrijving: data.beschrijving,
       userIds: invitedIds.filter((id) => id !== userId),
     });
 

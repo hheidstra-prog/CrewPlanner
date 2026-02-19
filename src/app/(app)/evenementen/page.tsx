@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EventCard } from "@/components/events/event-card";
+import { CalendarSubscribe } from "@/components/events/calendar-subscribe";
 import { getUpcomingEvents, getPastEvents } from "@/lib/queries/events";
 import { getCurrentUserId, isAdmin } from "@/lib/auth";
 import { resolveUsers } from "@/lib/users";
@@ -46,14 +47,17 @@ export default async function EvenementenPage() {
         title="Planning"
         description="Alle evenementen en activiteiten"
         action={
-          admin ? (
-            <Link href="/evenementen/nieuw">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Nieuw evenement
-              </Button>
-            </Link>
-          ) : undefined
+          <div className="flex gap-2">
+            <CalendarSubscribe />
+            {admin && (
+              <Link href="/evenementen/nieuw">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nieuw evenement
+                </Button>
+              </Link>
+            )}
+          </div>
         }
       />
 
@@ -67,7 +71,7 @@ export default async function EvenementenPage() {
           ))}
         </TabsList>
 
-        <TabsContent value="alle" className="mt-4 space-y-3">
+        <TabsContent value="alle" className="mt-6 flex flex-col gap-6">
           {upcoming.length === 0 && past.length === 0 ? (
             <EmptyState
               icon={CalendarDays}
@@ -101,7 +105,7 @@ export default async function EvenementenPage() {
           const filteredUpcoming = upcoming.filter((e) => e.type === type);
           const filteredPast = past.filter((e) => e.type === type);
           return (
-            <TabsContent key={type} value={type} className="mt-4 space-y-3">
+            <TabsContent key={type} value={type} className="mt-6 flex flex-col gap-6">
               {filteredUpcoming.length === 0 && filteredPast.length === 0 ? (
                 <EmptyState
                   icon={CalendarDays}
@@ -155,7 +159,7 @@ function PastEventsSection({
       <summary className="cursor-pointer text-sm font-medium text-muted-foreground py-3 hover:text-foreground transition-colors">
         Afgelopen evenementen ({events.length})
       </summary>
-      <div className="space-y-3 mt-2 opacity-75">
+      <div className="flex flex-col gap-6 mt-2 opacity-75">
         {events.map((event) => (
           <EventCard
             key={event.id}

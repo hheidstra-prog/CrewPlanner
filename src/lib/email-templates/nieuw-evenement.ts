@@ -1,17 +1,65 @@
 import { APP_URL } from "@/lib/email";
 
+function formatGoogleCalendarDate(date: Date): string {
+  return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+function buildGoogleCalendarUrl({
+  titel,
+  datumStart,
+  datumEnd,
+  locatie,
+  beschrijving,
+  eventId,
+}: {
+  titel: string;
+  datumStart: Date;
+  datumEnd?: Date | null;
+  locatie?: string | null;
+  beschrijving?: string | null;
+  eventId: string;
+}): string {
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: titel,
+    dates: datumEnd
+      ? `${formatGoogleCalendarDate(datumStart)}/${formatGoogleCalendarDate(datumEnd)}`
+      : `${formatGoogleCalendarDate(datumStart)}/${formatGoogleCalendarDate(datumStart)}`,
+  });
+  if (locatie) params.set("location", locatie);
+  const details = beschrijving
+    ? `${beschrijving}\n\n${APP_URL}/evenementen/${eventId}`
+    : `${APP_URL}/evenementen/${eventId}`;
+  params.set("details", details);
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 export function nieuwEvenementEmail({
   titel,
   datum,
+  datumStart,
+  datumEnd,
   locatie,
+  beschrijving,
   eventId,
 }: {
   titel: string;
   datum: string;
+  datumStart: Date;
+  datumEnd?: Date | null;
   locatie?: string | null;
+  beschrijving?: string | null;
   eventId: string;
 }) {
   const eventUrl = `${APP_URL}/evenementen/${eventId}`;
+  const calendarUrl = buildGoogleCalendarUrl({
+    titel,
+    datumStart,
+    datumEnd,
+    locatie,
+    beschrijving,
+    eventId,
+  });
 
   return {
     subject: `Je bent uitgenodigd voor: ${titel}`,
@@ -31,9 +79,14 @@ export function nieuwEvenementEmail({
         <p style="color: #333; font-size: 14px; line-height: 1.5;">
           Geef je beschikbaarheid door via onderstaande link.
         </p>
-        <a href="${eventUrl}" style="display: inline-block; margin-top: 12px; padding: 10px 24px; background-color: #1e3a5f; color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600;">
-          Bekijk evenement
-        </a>
+        <div style="margin-top: 12px;">
+          <a href="${eventUrl}" style="display: inline-block; padding: 10px 24px; background-color: #1e3a5f; color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600;">
+            Bekijk evenement
+          </a>
+          <a href="${calendarUrl}" style="display: inline-block; margin-left: 8px; padding: 10px 24px; background-color: #fff; color: #1e3a5f; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; border: 1px solid #1e3a5f;">
+            Toevoegen aan agenda
+          </a>
+        </div>
         <p style="margin-top: 24px; font-size: 12px; color: #999;">
           Dit bericht is verzonden door CrewPlanner.
         </p>
@@ -41,3 +94,4 @@ export function nieuwEvenementEmail({
     `,
   };
 }
+

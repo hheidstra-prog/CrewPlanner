@@ -93,9 +93,8 @@ export function EventCard({ event, currentUserId, usersMap }: EventCardProps) {
     <Link href={`/evenementen/${event.id}`}>
       <Card
         className={cn(
-          "transition-shadow hover:shadow-md",
-          urgency === "critical" && "border-niet-beschikbaar/50 bg-niet-beschikbaar/[0.02]",
-          urgency === "warning" && "border-twijfel/50"
+          urgency === "critical" && "border-niet-beschikbaar/30 bg-niet-beschikbaar/[0.02]",
+          urgency === "warning" && "border-twijfel/30"
         )}
       >
         <CardContent className="p-4">

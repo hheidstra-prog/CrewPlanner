@@ -26,11 +26,11 @@ export default async function DashboardPage() {
           description="Er is nog niets te zien. Het bestuur gaat binnenkort evenementen en taken aanmaken."
         />
       ) : (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-6">
           {nextEvent && <EventHero event={nextEvent} />}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-4">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="flex flex-col gap-6">
               <PendingEvents events={pendingEvents} />
               <RecentPosts posts={recentPosts} />
             </div>

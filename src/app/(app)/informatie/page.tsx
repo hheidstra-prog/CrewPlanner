@@ -55,7 +55,7 @@ export default async function InformatiePage({
           ))}
         </TabsList>
 
-        <TabsContent value="alle" className="mt-4 space-y-3">
+        <TabsContent value="alle" className="mt-6 flex flex-col gap-6">
           {posts.length === 0 ? (
             <EmptyState
               icon={Newspaper}
@@ -74,7 +74,7 @@ export default async function InformatiePage({
         {categories.map((cat) => {
           const filtered = posts.filter((p) => p.categorie === cat);
           return (
-            <TabsContent key={cat} value={cat} className="mt-4 space-y-3">
+            <TabsContent key={cat} value={cat} className="mt-6 flex flex-col gap-6">
               {filtered.length === 0 ? (
                 <EmptyState
                   icon={Newspaper}

@@ -59,7 +59,7 @@ export default async function TakenPage() {
         {statuses.map((status) => {
           const filtered = tasks.filter((t) => t.status === status);
           return (
-            <TabsContent key={status} value={status} className="mt-4 space-y-3">
+            <TabsContent key={status} value={status} className="mt-6 flex flex-col gap-6">
               {filtered.length === 0 ? (
                 <EmptyState
                   icon={ListChecks}

@@ -13,7 +13,7 @@ interface PostCardProps {
 export function PostCard({ post }: PostCardProps) {
   return (
     <Link href={`/informatie/${post.id}`}>
-      <Card className="transition-shadow hover:shadow-md">
+      <Card>
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">

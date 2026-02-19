@@ -10,13 +10,17 @@ export async function sendEventInviteEmails({
   eventId,
   titel,
   datum,
+  eindtijd,
   locatie,
+  beschrijving,
   userIds,
 }: {
   eventId: string;
   titel: string;
   datum: Date;
+  eindtijd?: Date | null;
   locatie?: string | null;
+  beschrijving?: string | null;
   userIds: string[];
 }) {
   try {
@@ -25,7 +29,10 @@ export async function sendEventInviteEmails({
     const template = nieuwEvenementEmail({
       titel,
       datum: formatDatum(datum),
+      datumStart: datum,
+      datumEnd: eindtijd,
       locatie,
+      beschrijving,
       eventId,
     });
 
