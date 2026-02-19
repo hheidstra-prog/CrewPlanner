@@ -75,6 +75,14 @@ export async function GET(request: Request) {
         })),
       });
 
+      // Log per-user reminder delivery
+      await prisma.eventHerinneringLog.createMany({
+        data: nonResponderIds.map((userId) => ({
+          eventId: event.id,
+          userId,
+        })),
+      });
+
       // Mark reminder as sent
       await prisma.eventHerinnering.update({
         where: { id: herinnering.id },

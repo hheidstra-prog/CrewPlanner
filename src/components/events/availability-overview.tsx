@@ -1,12 +1,15 @@
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { BESCHIKBAARHEID_LABELS } from "@/lib/constants";
-import type { Beschikbaarheid, BeschikbaarheidStatus } from "@/generated/prisma";
+import { relatieveDatum } from "@/lib/utils";
+import type { Beschikbaarheid, BeschikbaarheidStatus, EventHerinneringLog } from "@/generated/prisma";
 import type { ResolvedUser } from "@/lib/users";
+import { Bell } from "lucide-react";
 
 interface AvailabilityOverviewProps {
   beschikbaarheid: Beschikbaarheid[];
   usersMap: Map<string, ResolvedUser>;
   invitedUserIds?: string[];
+  herinneringLogs?: EventHerinneringLog[];
 }
 
 const statusGroups: { status: BeschikbaarheidStatus; color: string }[] = [
@@ -19,11 +22,20 @@ export function AvailabilityOverview({
   beschikbaarheid,
   usersMap,
   invitedUserIds,
+  herinneringLogs,
 }: AvailabilityOverviewProps) {
   const respondedUserIds = new Set(beschikbaarheid.map((b) => b.userId));
   const nonResponders = invitedUserIds
     ? invitedUserIds.filter((id) => !respondedUserIds.has(id))
     : [];
+
+  // Count reminders per user
+  const reminderCountByUser = new Map<string, number>();
+  if (herinneringLogs) {
+    for (const log of herinneringLogs) {
+      reminderCountByUser.set(log.userId, (reminderCountByUser.get(log.userId) ?? 0) + 1);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -40,6 +52,7 @@ export function AvailabilityOverview({
             <div className="space-y-2">
               {items.map((b) => {
                 const user = usersMap.get(b.userId);
+                const reminderCount = reminderCountByUser.get(b.userId) ?? 0;
                 return (
                   <div
                     key={b.id}
@@ -52,9 +65,18 @@ export function AvailabilityOverview({
                       size="sm"
                     />
                     <span>{user?.fullName ?? "Onbekend"}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {relatieveDatum(b.tijdstipReactie)}
+                    </span>
                     {b.reden && (
                       <span className="text-xs text-muted-foreground">
                         — {b.reden}
+                      </span>
+                    )}
+                    {reminderCount > 0 && (
+                      <span className="flex items-center gap-0.5 text-xs text-twijfel" title={`${reminderCount} herinnering(en) verstuurd`}>
+                        <Bell className="h-3 w-3" />
+                        {reminderCount}
                       </span>
                     )}
                   </div>
@@ -74,6 +96,7 @@ export function AvailabilityOverview({
           <div className="space-y-2">
             {nonResponders.map((userId) => {
               const user = usersMap.get(userId);
+              const reminderCount = reminderCountByUser.get(userId) ?? 0;
               return (
                 <div
                   key={userId}
@@ -86,6 +109,12 @@ export function AvailabilityOverview({
                     size="sm"
                   />
                   <span>{user?.fullName ?? "Onbekend"}</span>
+                  {reminderCount > 0 && (
+                    <span className="flex items-center gap-0.5 text-xs text-twijfel" title={`${reminderCount} herinnering(en) verstuurd`}>
+                      <Bell className="h-3 w-3" />
+                      {reminderCount}
+                    </span>
+                  )}
                 </div>
               );
             })}

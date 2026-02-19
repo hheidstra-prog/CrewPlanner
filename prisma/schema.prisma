@@ -76,6 +76,7 @@ model Event {
   beschikbaarheid        Beschikbaarheid[]
   uitnodigingen          EventUitnodiging[]
   herinneringen          EventHerinnering[]
+  herinneringLogs        EventHerinneringLog[]
 
   @@map("events")
 }
@@ -201,4 +202,15 @@ model EventHerinnering {
 
   @@unique([eventId, dagenNaAanmaak])
   @@map("event_herinneringen")
+}
+
+model EventHerinneringLog {
+  id          String   @id @default(cuid())
+  eventId     String
+  userId      String
+  verzondenOp DateTime @default(now())
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, userId])
+  @@map("event_herinnering_logs")
 }

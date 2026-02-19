@@ -47,6 +47,7 @@ export async function getEventById(id: string) {
       beschikbaarheid: true,
       uitnodigingen: true,
       herinneringen: true,
+      herinneringLogs: true,
     },
   });
 }

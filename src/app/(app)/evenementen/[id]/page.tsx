@@ -143,6 +143,7 @@ export default async function EvenementDetailPage({
                 beschikbaarheid={event.beschikbaarheid}
                 usersMap={usersMap}
                 invitedUserIds={invitedUserIds}
+                herinneringLogs={event.herinneringLogs}
               />
             </CardContent>
           </Card>
