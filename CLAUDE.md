@@ -59,9 +59,10 @@ src/
 │       ├── upload/            # File upload (Vercel Blob)
 │       ├── notifications/     # Notification count
 │       ├── push/              # Push subscribe/unsubscribe endpoints
+│       ├── calendar/[token]/  # iCal subscription endpoint (.ics feed)
 │       └── cron/herinneringen/# Daily reminder cron job
 ├── components/
-│   ├── events/                # EventForm, EventCard, AvailabilityButtons, AvailabilityOverview
+│   ├── events/                # EventForm, EventCard, AvailabilityButtons, AvailabilityOverview, CalendarSubscribe
 │   ├── posts/                 # PostForm, PostCard
 │   ├── tasks/                 # TaskForm, TaskCard, TaskActions, TaskGroupManager
 │   ├── comments/              # CommentForm, CommentThread
@@ -79,9 +80,10 @@ src/
     ├── types.ts               # EventWithBeschikbaarheid, TaskWithGroup, ActionResult, etc.
     ├── email.ts               # Resend client (lazy init), FROM_EMAIL, APP_URL
     ├── push.ts                # web-push client (lazy init), sendPushToUsers()
+    ├── ical.ts                # generateICalFeed() — iCal feed generation from events
     ├── email-templates/       # HTML email templates (Dutch): nieuw-evenement, herinnering, taak-toegewezen
     ├── validations/           # Zod schemas: events, tasks, posts
-    ├── actions/               # Server actions: events, posts, tasks, comments, notifications, emails, users
+    ├── actions/               # Server actions: events, posts, tasks, comments, notifications, emails, users, calendar
     └── queries/               # Data fetching: events, posts, tasks, comments, notifications, dashboard, stats
 ```
 
@@ -103,6 +105,7 @@ src/
 | `Task` | Tasks with status, assignment, claiming |
 | `Notification` | In-app notifications |
 | `PushSubscription` | Web push subscription per user (endpoint, VAPID keys) |
+| `CalendarToken` | Per-user secret token for iCal subscription URL |
 
 ---
 
@@ -198,20 +201,46 @@ src/
 - PWA manifest (`src/app/manifest.ts`) + app icons for iOS "Add to Home Screen" push support
 - **Deploy note**: `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` must be set in Vercel env vars
 
+### iCal Calendar Subscription (Complete)
+- `CalendarToken` model — one UUID token per user (`userId` unique, `token` unique)
+- `GET /api/calendar/[token].ics` — serves iCal feed for that user's invited events (upcoming + past 30 days)
+- No auth on endpoint — the secret token in the URL acts as authentication
+- `generateICalFeed()` helper in `src/lib/ical.ts` — produces valid iCal with VCALENDAR/VEVENT, line folding, text escaping, hourly refresh hint
+- Server actions in `src/lib/actions/calendar.ts`:
+  - `getOrCreateCalendarToken()` — returns existing or creates new token for current user
+  - `regenerateCalendarToken()` — deletes old token, creates new one (security: invalidates leaked URLs)
+- `CalendarSubscribe` client component (`src/components/events/calendar-subscribe.tsx`):
+  - "Agenda" button on events page (visible to all users, next to "Nieuw evenement" for admins)
+  - Dialog with subscription URL, copy-to-clipboard button, and "Link vernieuwen" option
+- **Add to Calendar in emails**: Event invite emails include "Toevoegen aan agenda" button (Google Calendar link with pre-filled title, date, location, description)
+- Calendar apps (Google Calendar, Apple Calendar, Outlook) can subscribe via URL and auto-sync
+
+### UI Polish (Complete)
+- Card base component: softer border (`border-border/60`), `hover:shadow-md` transition moved to base Card
+- Event card urgency borders toned down from `/50` to `/30` opacity
+- Card list spacing increased to `flex flex-col gap-6` on events, informatie, taken pages
+- Dashboard spacing increased to `gap-6` between hero card and content grid
+
 ### Untracked files (not committed)
 - `scripts/seed-reminders.ts` — Seeds `EventHerinneringLog` entries for existing events (testing tool)
 - `scripts/inspect-events.ts` — Inspects events with invitations, responses, and reminder logs (debugging tool)
 - `scripts/seed-test-scenario.ts` — Creates a full test event with invited users, varied responses, and reminder logs
-- `screenshots/` — Error screenshots from debugging session
+- `screenshots/` — Screenshots from debugging/design sessions
 
 ---
 
 ## Phase 4 (Planned / Not Started)
 
 - AI Assistant (chat interface with Anthropic Claude API + tool use)
-- Calendar integration (iCal export)
 - Season overviews / reports
 - Advanced file management
+
+---
+
+## Known Gotchas
+
+- **Prisma client caching after schema changes**: After adding a new model and running `db:push` + `db:generate`, the dev server must be fully restarted. The global Prisma client singleton (`globalForPrisma.prisma`) caches the old client without the new model, causing `Cannot read properties of undefined (reading 'findUnique')` errors. A hot reload is not enough — kill and restart `npm run dev`.
+- **Tailwind `space-y` vs `flex gap`**: On list pages, `space-y-*` classes sometimes don't produce visible spacing. Use `flex flex-col gap-*` instead for reliable card spacing.
 
 ---
 
