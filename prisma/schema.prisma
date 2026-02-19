@@ -192,13 +192,13 @@ model EventUitnodiging {
 }
 
 model EventHerinnering {
-  id                String    @id @default(cuid())
-  eventId           String
-  dagenVoorDeadline Int
-  verzonden         Boolean   @default(false)
-  verzondenOp       DateTime?
-  event             Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id             String    @id @default(cuid())
+  eventId        String
+  dagenNaAanmaak Int
+  verzonden      Boolean   @default(false)
+  verzondenOp    DateTime?
+  event          Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  @@unique([eventId, dagenVoorDeadline])
+  @@unique([eventId, dagenNaAanmaak])
   @@map("event_herinneringen")
 }

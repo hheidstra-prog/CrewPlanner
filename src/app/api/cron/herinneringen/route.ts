@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   try {
     const now = new Date();
 
-    // Find all unsent reminders where the trigger date has passed
+    // Find all unsent reminders
     const herinneringen = await prisma.eventHerinnering.findMany({
       where: { verzonden: false },
       include: {
@@ -30,11 +30,10 @@ export async function GET(request: Request) {
 
     for (const herinnering of herinneringen) {
       const { event } = herinnering;
-      const deadline = event.deadlineBeschikbaarheid ?? event.datum;
 
-      // Calculate trigger date: deadline minus X days
-      const triggerDate = new Date(deadline);
-      triggerDate.setDate(triggerDate.getDate() - herinnering.dagenVoorDeadline);
+      // Calculate trigger date: event creation + X days
+      const triggerDate = new Date(event.createdAt);
+      triggerDate.setDate(triggerDate.getDate() + herinnering.dagenNaAanmaak);
 
       // Only send if trigger date has passed and event is still upcoming
       if (now < triggerDate) continue;
@@ -56,6 +55,7 @@ export async function GET(request: Request) {
       }
 
       // Send reminder emails
+      const deadline = event.deadlineBeschikbaarheid ?? event.datum;
       await sendReminderEmails({
         eventId: event.id,
         titel: event.titel,
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
         data: nonResponderIds.map((userId) => ({
           userId,
           type: "HERINNERING" as const,
-          message: `Herinnering: reageer op "${event.titel}" voor ${formatDatum(deadline)}`,
+          message: `Herinnering: reageer op "${event.titel}"`,
           referenceType: "EVENT" as const,
           referenceId: event.id,
           actorId: event.aangemaaaktDoor,

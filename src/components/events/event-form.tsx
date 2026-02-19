@@ -34,18 +34,26 @@ function toDatetimeLocal(date: Date | string | null | undefined): string {
   return local.toISOString().slice(0, 16);
 }
 
+function toTimeLocal(date: Date | string | null | undefined): string {
+  if (!date) return "";
+  const d = new Date(date);
+  const offset = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - offset * 60000);
+  return local.toISOString().slice(11, 16);
+}
+
 function getDefaultHerinnering(herinneringen?: EventHerinnering[]): string {
   if (!herinneringen || herinneringen.length === 0) return "geen";
-  const dagen = herinneringen.map((h) => h.dagenVoorDeadline).sort((a, b) => a - b);
+  const dagen = herinneringen.map((h) => h.dagenNaAanmaak).sort((a, b) => a - b);
   return dagen.join(",");
 }
 
 const HERINNERING_OPTIONS = [
   { value: "geen", label: "Geen herinnering" },
-  { value: "3", label: "3 dagen voor deadline" },
-  { value: "5", label: "5 dagen voor deadline" },
-  { value: "7", label: "7 dagen voor deadline" },
-  { value: "3,7", label: "3 en 7 dagen voor deadline" },
+  { value: "2", label: "Na 2 dagen" },
+  { value: "3", label: "Na 3 dagen" },
+  { value: "5", label: "Na 5 dagen" },
+  { value: "2,5", label: "Na 2 en 5 dagen" },
 ];
 
 export function EventForm({ event, members, invitedUserIds }: EventFormProps) {
@@ -117,7 +125,7 @@ export function EventForm({ event, members, invitedUserIds }: EventFormProps) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="datum">Datum & tijd</Label>
+              <Label htmlFor="datum">Datum & starttijd</Label>
               <Input
                 id="datum"
                 name="datum"
@@ -131,8 +139,8 @@ export function EventForm({ event, members, invitedUserIds }: EventFormProps) {
               <Input
                 id="eindtijd"
                 name="eindtijd"
-                type="datetime-local"
-                defaultValue={toDatetimeLocal(event?.eindtijd)}
+                type="time"
+                defaultValue={toTimeLocal(event?.eindtijd)}
               />
             </div>
           </div>

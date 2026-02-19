@@ -11,6 +11,13 @@ import type { BeschikbaarheidStatus } from "@/generated/prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 import { sendEventInviteEmails } from "@/lib/actions/emails";
 
+function combineDateTime(dateStr: string, timeStr?: string): Date | null {
+  if (!timeStr) return null;
+  // dateStr is a datetime-local string "YYYY-MM-DDTHH:mm", take the date part
+  const datePart = dateStr.split("T")[0];
+  return new Date(`${datePart}T${timeStr}`);
+}
+
 async function getAllUserIds(): Promise<string[]> {
   const client = await clerkClient();
   const { data: users } = await client.users.getUserList({ limit: 100 });
@@ -43,7 +50,7 @@ export async function createEvent(formData: FormData): Promise<ActionResult> {
         titel: data.titel,
         beschrijving: data.beschrijving || null,
         datum: new Date(data.datum),
-        eindtijd: data.eindtijd ? new Date(data.eindtijd) : null,
+        eindtijd: combineDateTime(data.datum, data.eindtijd),
         locatie: data.locatie || null,
         deadlineBeschikbaarheid: data.deadlineBeschikbaarheid
           ? new Date(data.deadlineBeschikbaarheid)
@@ -61,7 +68,7 @@ export async function createEvent(formData: FormData): Promise<ActionResult> {
       await prisma.eventHerinnering.createMany({
         data: herinneringDagen.map((dagen) => ({
           eventId: event.id,
-          dagenVoorDeadline: dagen,
+          dagenNaAanmaak: dagen,
         })),
       });
     }
@@ -111,7 +118,7 @@ export async function updateEvent(id: string, formData: FormData): Promise<Actio
         titel: data.titel,
         beschrijving: data.beschrijving || null,
         datum: new Date(data.datum),
-        eindtijd: data.eindtijd ? new Date(data.eindtijd) : null,
+        eindtijd: combineDateTime(data.datum, data.eindtijd),
         locatie: data.locatie || null,
         deadlineBeschikbaarheid: data.deadlineBeschikbaarheid
           ? new Date(data.deadlineBeschikbaarheid)
@@ -132,7 +139,7 @@ export async function updateEvent(id: string, formData: FormData): Promise<Actio
       await prisma.eventHerinnering.createMany({
         data: herinneringDagen.map((dagen) => ({
           eventId: id,
-          dagenVoorDeadline: dagen,
+          dagenNaAanmaak: dagen,
         })),
       });
     }

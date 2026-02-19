@@ -5,7 +5,7 @@ export const eventSchema = z.object({
   titel: z.string().min(1, "Titel is verplicht").max(200),
   beschrijving: z.string().max(5000).optional(),
   datum: z.string().min(1, "Datum is verplicht"),
-  eindtijd: z.string().optional(),
+  eindtijd: z.string().optional(), // time-only string "HH:mm"
   locatie: z.string().max(200).optional(),
   deadlineBeschikbaarheid: z.string().optional(),
   uitgenodigden: z.string().optional(), // comma-separated user IDs, empty = all
