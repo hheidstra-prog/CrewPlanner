@@ -5,9 +5,10 @@ import { Suspense } from "react";
 
 interface HeaderProps {
   notificationBell?: React.ReactNode;
+  pushToggle?: React.ReactNode;
 }
 
-export function Header({ notificationBell }: HeaderProps) {
+export function Header({ notificationBell, pushToggle }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-white">
       <div className="flex h-14 items-center justify-between px-4 md:px-6">
@@ -15,6 +16,7 @@ export function Header({ notificationBell }: HeaderProps) {
           <span className="text-xl font-bold text-navy md:hidden">CrewPlanner</span>
         </div>
         <div className="flex items-center gap-2">
+          {pushToggle}
           {notificationBell}
           <UserButton
             afterSignOutUrl="/sign-in"

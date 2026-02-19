@@ -6,6 +6,27 @@ import { getCurrentUserId } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types";
 import type { NotificationType, CommentParentType } from "@/generated/prisma";
 import { clerkClient } from "@clerk/nextjs/server";
+import { sendPushToUsers } from "@/lib/push";
+
+const refPaths: Record<CommentParentType, string> = {
+  EVENT: "/evenementen",
+  POST: "/informatie",
+  TASK: "/taken",
+};
+
+function buildPushPayload(params: {
+  type: NotificationType;
+  message: string;
+  referenceType: CommentParentType;
+  referenceId: string;
+}) {
+  return {
+    title: "CrewPlanner",
+    body: params.message,
+    url: `${refPaths[params.referenceType]}/${params.referenceId}`,
+    tag: `${params.type}-${params.referenceId}`,
+  };
+}
 
 export async function markAsRead(notificationId: string): Promise<ActionResult> {
   try {
@@ -27,6 +48,19 @@ export async function markAllAsRead(): Promise<ActionResult> {
     await prisma.notification.updateMany({
       where: { userId, read: false },
       data: { read: true },
+    });
+    revalidatePath("/inbox");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Er ging iets mis" };
+  }
+}
+
+export async function clearReadNotifications(): Promise<ActionResult> {
+  try {
+    const userId = await getCurrentUserId();
+    await prisma.notification.deleteMany({
+      where: { userId, read: true },
     });
     revalidatePath("/inbox");
     return { success: true };
@@ -71,6 +105,12 @@ export async function notifyMembers({
         actorId,
       })),
     });
+
+    try {
+      await sendPushToUsers(memberIds, buildPushPayload({ type, message, referenceType, referenceId }));
+    } catch (pushError) {
+      console.error("Failed to send push to members:", pushError);
+    }
   } catch (error) {
     console.error("Failed to create member notifications:", error);
   }
@@ -108,6 +148,12 @@ export async function notifySpecificUsers({
         actorId,
       })),
     });
+
+    try {
+      await sendPushToUsers(targets, buildPushPayload({ type, message, referenceType, referenceId }));
+    } catch (pushError) {
+      console.error("Failed to send push to specific users:", pushError);
+    }
   } catch (error) {
     console.error("Failed to create targeted notifications:", error);
   }
@@ -149,6 +195,12 @@ export async function notifyAdmins({
         actorId,
       })),
     });
+
+    try {
+      await sendPushToUsers(adminIds, buildPushPayload({ type, message, referenceType, referenceId }));
+    } catch (pushError) {
+      console.error("Failed to send push to admins:", pushError);
+    }
   } catch (error) {
     // Don't fail the parent action if notifications fail
     console.error("Failed to create notifications:", error);

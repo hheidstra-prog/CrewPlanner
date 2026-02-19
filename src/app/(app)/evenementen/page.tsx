@@ -7,8 +7,10 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { EventCard } from "@/components/events/event-card";
 import { getUpcomingEvents, getPastEvents } from "@/lib/queries/events";
 import { getCurrentUserId, isAdmin } from "@/lib/auth";
+import { resolveUsers } from "@/lib/users";
 import { EVENT_TYPE_LABELS } from "@/lib/constants";
 import type { EventType } from "@/generated/prisma";
+import type { ResolvedUser } from "@/lib/users";
 
 export default async function EvenementenPage() {
   const [upcomingEvents, pastEvents, userId, admin] = await Promise.all([
@@ -27,6 +29,16 @@ export default async function EvenementenPage() {
   const upcoming = filterByInvitation(upcomingEvents);
   const past = filterByInvitation(pastEvents);
   const eventTypes = Object.keys(EVENT_TYPE_LABELS) as EventType[];
+
+  // Collect all unique user IDs and resolve them once
+  const allEvents = [...upcoming, ...past];
+  const allUserIds = new Set<string>();
+  for (const event of allEvents) {
+    for (const b of event.beschikbaarheid) allUserIds.add(b.userId);
+    for (const u of event.uitnodigingen) allUserIds.add(u.userId);
+  }
+  const usersMapObj = await resolveUsers([...allUserIds]);
+  const usersMap: Record<string, ResolvedUser> = Object.fromEntries(usersMapObj);
 
   return (
     <div>
@@ -74,11 +86,12 @@ export default async function EvenementenPage() {
                     key={event.id}
                     event={event}
                     currentUserId={userId}
+                    usersMap={usersMap}
                   />
                 ))
               )}
               {past.length > 0 && (
-                <PastEventsSection events={past} currentUserId={userId} />
+                <PastEventsSection events={past} currentUserId={userId} usersMap={usersMap} />
               )}
             </>
           )}
@@ -107,6 +120,7 @@ export default async function EvenementenPage() {
                         key={event.id}
                         event={event}
                         currentUserId={userId}
+                        usersMap={usersMap}
                       />
                     ))
                   )}
@@ -114,6 +128,7 @@ export default async function EvenementenPage() {
                     <PastEventsSection
                       events={filteredPast}
                       currentUserId={userId}
+                      usersMap={usersMap}
                     />
                   )}
                 </>
@@ -129,9 +144,11 @@ export default async function EvenementenPage() {
 function PastEventsSection({
   events,
   currentUserId,
+  usersMap,
 }: {
   events: Awaited<ReturnType<typeof getPastEvents>>;
   currentUserId: string;
+  usersMap: Record<string, ResolvedUser>;
 }) {
   return (
     <details className="group">
@@ -144,6 +161,7 @@ function PastEventsSection({
             key={event.id}
             event={event}
             currentUserId={currentUserId}
+            usersMap={usersMap}
           />
         ))}
       </div>

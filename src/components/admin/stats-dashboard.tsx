@@ -47,16 +47,20 @@ export function StatsDashboard({
           <MemberStatsTable
             columns={[
               { key: "uitgenodigd", label: "Uitgenodigd" },
-              { key: "gereageerd", label: "Gereageerd" },
               { key: "beschikbaar", label: "Beschikbaar" },
+              { key: "twijfel", label: "Twijfel" },
+              { key: "nietBeschikbaar", label: "Niet besch." },
+              { key: "herinneringen", label: "Herinneringen" },
               { key: "opkomst", label: "Opkomst %" },
             ]}
             rows={sortedParticipation.map((p) => ({
               userId: p.userId,
               values: {
                 uitgenodigd: p.uitgenodigd,
-                gereageerd: p.gereageerd,
                 beschikbaar: p.beschikbaar,
+                twijfel: p.twijfel,
+                nietBeschikbaar: p.nietBeschikbaar,
+                herinneringen: p.herinneringen,
                 opkomst: `${p.opkomstPercentage}%`,
               },
             }))}

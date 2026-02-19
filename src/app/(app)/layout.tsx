@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { PushToggle } from "@/components/layout/push-toggle";
 
 export default function AppLayout({
   children,
@@ -14,6 +15,7 @@ export default function AppLayout({
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header
+          pushToggle={<PushToggle />}
           notificationBell={
             <Suspense>
               <NotificationBell />

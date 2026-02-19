@@ -3,8 +3,10 @@ import { prisma } from "@/lib/prisma";
 export type MemberParticipationStat = {
   userId: string;
   uitgenodigd: number;
-  gereageerd: number;
   beschikbaar: number;
+  twijfel: number;
+  nietBeschikbaar: number;
+  herinneringen: number;
   opkomstPercentage: number;
 };
 
@@ -33,22 +35,35 @@ export async function getMemberParticipationStats(): Promise<MemberParticipation
     },
   });
 
-  const responsesByUser = new Map<string, { gereageerd: number; beschikbaar: number }>();
+  const responsesByUser = new Map<string, { beschikbaar: number; twijfel: number; nietBeschikbaar: number }>();
   for (const b of beschikbaarheden) {
-    const existing = responsesByUser.get(b.userId) ?? { gereageerd: 0, beschikbaar: 0 };
-    existing.gereageerd++;
+    const existing = responsesByUser.get(b.userId) ?? { beschikbaar: 0, twijfel: 0, nietBeschikbaar: 0 };
     if (b.status === "BESCHIKBAAR") existing.beschikbaar++;
+    else if (b.status === "TWIJFEL") existing.twijfel++;
+    else if (b.status === "NIET_BESCHIKBAAR") existing.nietBeschikbaar++;
     responsesByUser.set(b.userId, existing);
   }
 
+  // Count reminders per user
+  const herinneringLogs = await prisma.eventHerinneringLog.groupBy({
+    by: ["userId"],
+    _count: { id: true },
+  });
+  const herinneringenByUser = new Map<string, number>();
+  for (const h of herinneringLogs) {
+    herinneringenByUser.set(h.userId, h._count.id);
+  }
+
   return uitnodigingen.map((u) => {
-    const responses = responsesByUser.get(u.userId) ?? { gereageerd: 0, beschikbaar: 0 };
+    const responses = responsesByUser.get(u.userId) ?? { beschikbaar: 0, twijfel: 0, nietBeschikbaar: 0 };
     const uitgenodigd = u._count.id;
     return {
       userId: u.userId,
       uitgenodigd,
-      gereageerd: responses.gereageerd,
       beschikbaar: responses.beschikbaar,
+      twijfel: responses.twijfel,
+      nietBeschikbaar: responses.nietBeschikbaar,
+      herinneringen: herinneringenByUser.get(u.userId) ?? 0,
       opkomstPercentage: uitgenodigd > 0
         ? Math.round((responses.beschikbaar / uitgenodigd) * 100)
         : 0,

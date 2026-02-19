@@ -214,3 +214,15 @@ model EventHerinneringLog {
   @@index([eventId, userId])
   @@map("event_herinnering_logs")
 }
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}

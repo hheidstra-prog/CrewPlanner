@@ -5,11 +5,14 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/lib/constants";
 import { formatDatumKort, formatTijd, relatieveDatum } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { ExpandableAvailability } from "./expandable-availability";
 import type { EventWithBeschikbaarheid } from "@/lib/types";
+import type { ResolvedUser } from "@/lib/users";
 
 interface EventCardProps {
   event: EventWithBeschikbaarheid;
   currentUserId?: string;
+  usersMap?: Record<string, ResolvedUser>;
 }
 
 function daysUntil(date: Date): number {
@@ -36,7 +39,7 @@ function getDeadlineUrgency(event: EventWithBeschikbaarheid) {
   return "ok";
 }
 
-export function EventCard({ event, currentUserId }: EventCardProps) {
+export function EventCard({ event, currentUserId, usersMap }: EventCardProps) {
   const totalInvited = event.uitnodigingen.length;
   const beschikbaar = event.beschikbaarheid.filter((b) => b.status === "BESCHIKBAAR").length;
   const nietBeschikbaar = event.beschikbaarheid.filter((b) => b.status === "NIET_BESCHIKBAAR").length;
@@ -56,6 +59,35 @@ export function EventCard({ event, currentUserId }: EventCardProps) {
   const pctBeschikbaar = (beschikbaar / total) * 100;
   const pctNiet = (nietBeschikbaar / total) * 100;
   const pctTwijfel = (twijfel / total) * 100;
+
+  // Prepare data for expandable availability
+  const respondedUserIds = new Set(event.beschikbaarheid.map((b) => b.userId));
+  const availabilityMembers = usersMap
+    ? event.beschikbaarheid.map((b) => {
+        const user = usersMap[b.userId];
+        return {
+          userId: b.userId,
+          fullName: user?.fullName ?? "Onbekend",
+          initials: user?.initials ?? "?",
+          imageUrl: user?.imageUrl ?? "",
+          status: b.status as "BESCHIKBAAR" | "TWIJFEL" | "NIET_BESCHIKBAAR",
+          reden: b.reden,
+        };
+      })
+    : [];
+  const nonResponders = usersMap
+    ? event.uitnodigingen
+        .filter((u) => !respondedUserIds.has(u.userId))
+        .map((u) => {
+          const user = usersMap[u.userId];
+          return {
+            userId: u.userId,
+            fullName: user?.fullName ?? "Onbekend",
+            initials: user?.initials ?? "?",
+            imageUrl: user?.imageUrl ?? "",
+          };
+        })
+    : [];
 
   return (
     <Link href={`/evenementen/${event.id}`}>
@@ -168,6 +200,13 @@ export function EventCard({ event, currentUserId }: EventCardProps) {
                           ? "Deadline morgen"
                           : `Deadline over ${deadlineDays} dagen`}
                   </div>
+                )}
+
+                {usersMap && (
+                  <ExpandableAvailability
+                    members={availabilityMembers}
+                    nonResponders={nonResponders}
+                  />
                 )}
               </div>
             </div>

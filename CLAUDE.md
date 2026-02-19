@@ -90,6 +90,7 @@ src/
 | `Beschikbaarheid` | Per-user availability response per event |
 | `EventUitnodiging` | Which users are invited to an event |
 | `EventHerinnering` | Scheduled reminder config per event |
+| `EventHerinneringLog` | Per-user reminder delivery log (event + user + timestamp) |
 | `Post` | Information posts with categories |
 | `PostFile` | File attachments on posts |
 | `Comment` | Polymorphic comments on events/posts/tasks |
@@ -140,10 +141,18 @@ src/
 - Sending domain: configured in `src/lib/email.ts` (`FROM_EMAIL`)
 
 ### Automated Reminders
-- `EventHerinnering` records created per event (configurable: 3/5/7/3+7 days before deadline)
+- `EventHerinnering` records created per event (configurable: 2/3/5/2+5 days after creation)
+- Reminder timing changed from "days before deadline" to "days after event creation" (`dagenNaAanmaak`)
 - Vercel cron at `/api/cron/herinneringen` runs daily at 08:00 UTC
 - Sends email + in-app `HERINNERING` notification to non-responders
 - Auth: `CRON_SECRET` header verification
+
+### Per-User Reminder Tracking
+- `EventHerinneringLog` model tracks which users received which reminders (per event, per user, with timestamp)
+- Cron job creates a log entry for each user when a reminder is sent
+- Event detail page shows bell icon with reminder count next to each user (both responders and non-responders)
+- `AvailabilityOverview` component receives `herinneringLogs` prop and displays per-user counts
+- `getEventById` query includes `herinneringLogs` relation
 
 ### Past/Upcoming Event Split
 - Events page shows upcoming events by default
@@ -159,6 +168,33 @@ src/
 - **Afgeronde taken**: per member — completed task count
 - **Responstijd**: per member — average hours to respond
 - Located on Beheer page below team members and task groups
+
+---
+
+### End Time Simplification
+- Event `eindtijd` field changed from full `datetime-local` input to `time` input only
+- End time is stored as a full DateTime but only the time portion is used in the UI
+- Event form uses `toTimeLocal()` helper to extract HH:MM from the stored DateTime
+
+---
+
+## Recent Session (2026-02-19) — Status & Open Issues
+
+### What was done
+1. **Reminder system refactored**: Changed from "days before deadline" to "days after creation" (`dagenNaAanmaak`)
+2. **Per-user reminder tracking**: Added `EventHerinneringLog` model + bell indicators on event detail page
+3. **End time simplified**: Changed from datetime-local to time-only input
+4. **Email domain fix**: Corrected FROM_EMAIL typo from `viralize.ai` to `virtalize.ai`
+5. **Debug logging**: Added then removed debug logging for email sending troubleshooting
+
+### Resolved — PrismaClientValidationError
+A `PrismaClientValidationError` was observed on the event detail page (`/evenementen/[id]`) because the dev server was running with a stale Prisma client after the `EventHerinneringLog` model was added. Fixed by running `npm run db:generate` and restarting the dev server. DB was already in sync.
+
+### Untracked files (not committed)
+- `scripts/seed-reminders.ts` — Seeds `EventHerinneringLog` entries for existing events (testing tool)
+- `scripts/inspect-events.ts` — Inspects events with invitations, responses, and reminder logs (debugging tool)
+- `scripts/seed-test-scenario.ts` — Creates a full test event with invited users, varied responses, and reminder logs
+- `screenshots/` — Error screenshots from debugging session
 
 ---
 
