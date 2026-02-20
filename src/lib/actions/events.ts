@@ -39,10 +39,13 @@ export async function createEvent(formData: FormData): Promise<ActionResult> {
     const data = eventSchema.parse(raw);
 
     // Determine invited user IDs
-    const uitgenodigdenRaw = data.uitgenodigden?.trim();
-    const invitedIds = uitgenodigdenRaw
-      ? uitgenodigdenRaw.split(",").filter(Boolean)
-      : await getAllUserIds();
+    // undefined = no picker present → invite all; "" = picker with none selected → empty list
+    const uitgenodigdenRaw = data.uitgenodigden;
+    const invitedIds = uitgenodigdenRaw === undefined
+      ? await getAllUserIds()
+      : uitgenodigdenRaw.trim()
+        ? uitgenodigdenRaw.split(",").filter(Boolean)
+        : [];
 
     const event = await prisma.event.create({
       data: {
@@ -108,10 +111,13 @@ export async function updateEvent(id: string, formData: FormData): Promise<Actio
     const data = eventSchema.parse(raw);
 
     // Determine invited user IDs
-    const uitgenodigdenRaw = data.uitgenodigden?.trim();
-    const invitedIds = uitgenodigdenRaw
-      ? uitgenodigdenRaw.split(",").filter(Boolean)
-      : await getAllUserIds();
+    // undefined = no picker present → invite all; "" = picker with none selected → empty list
+    const uitgenodigdenRaw = data.uitgenodigden;
+    const invitedIds = uitgenodigdenRaw === undefined
+      ? await getAllUserIds()
+      : uitgenodigdenRaw.trim()
+        ? uitgenodigdenRaw.split(",").filter(Boolean)
+        : [];
 
     await prisma.event.update({
       where: { id },

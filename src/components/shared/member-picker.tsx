@@ -78,6 +78,17 @@ export function MemberPicker({
 
       {!selectAll && (
         <div className="grid gap-1.5 max-h-60 overflow-y-auto rounded-md border p-2">
+          <button
+            type="button"
+            onClick={() =>
+              setSelectedIds(
+                selectedIds.size === members.length ? new Set() : new Set(allIds)
+              )
+            }
+            className="text-xs text-muted-foreground hover:text-foreground text-left px-2 py-1"
+          >
+            {selectedIds.size === members.length ? "Deselecteer alle" : "Selecteer alle"}
+          </button>
           {members.map((member) => {
             const isSelected = selectedIds.has(member.id);
             return (
