@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveUsers } from "@/lib/users";
 import { TaskGroupManager } from "@/components/tasks/task-group-manager";
 import { TeamMemberList } from "@/components/admin/team-member-list";
+import { AddMemberForm } from "@/components/admin/add-member-form";
 import { StatsDashboard } from "@/components/admin/stats-dashboard";
 import {
   getMemberParticipationStats,
@@ -49,6 +50,7 @@ export default async function BeheerPage() {
       email: user.emailAddresses[0]?.emailAddress ?? "",
       imageUrl: user.imageUrl,
       role: ((user.publicMetadata?.role as string) ?? "member") as "admin" | "member",
+      banned: user.banned,
       isCurrentUser: user.id === currentUserId,
     };
   });
@@ -80,7 +82,8 @@ export default async function BeheerPage() {
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <AddMemberForm />
           <TeamMemberList members={members} />
         </CardContent>
       </Card>

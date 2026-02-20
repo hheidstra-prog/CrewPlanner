@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Shield, ShieldOff } from "lucide-react";
+import { Shield, ShieldOff, UserX, UserCheck, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { setUserRole } from "@/lib/actions/users";
+import { setUserRole, toggleUserBan, sendWelcomeEmail } from "@/lib/actions/users";
 import { toast } from "sonner";
 
 interface TeamMember {
@@ -15,6 +15,7 @@ interface TeamMember {
   email: string;
   imageUrl: string;
   role: "admin" | "member";
+  banned: boolean;
   isCurrentUser: boolean;
 }
 
@@ -24,6 +25,38 @@ interface TeamMemberListProps {
 
 export function TeamMemberList({ members }: TeamMemberListProps) {
   const router = useRouter();
+
+  const handleSendWelcome = async (member: TeamMember) => {
+    if (!confirm(`Welkomstmail sturen naar ${member.fullName} (${member.email})?`)) {
+      return;
+    }
+
+    const result = await sendWelcomeEmail(member.id);
+    if (result.success) {
+      toast.success(`Welkomstmail verstuurd naar ${member.email}`);
+    } else {
+      toast.error(result.error ?? "Er ging iets mis");
+    }
+  };
+
+  const handleToggleBan = async (member: TeamMember) => {
+    const action = member.banned ? "heractiveren" : "deactiveren";
+    if (!confirm(`Weet je zeker dat je ${member.fullName} wilt ${action}?`)) {
+      return;
+    }
+
+    const result = await toggleUserBan(member.id, !member.banned);
+    if (result.success) {
+      toast.success(
+        member.banned
+          ? `${member.fullName} is weer actief`
+          : `${member.fullName} is gedeactiveerd`
+      );
+      router.refresh();
+    } else {
+      toast.error(result.error ?? "Er ging iets mis");
+    }
+  };
 
   const handleToggleRole = async (member: TeamMember) => {
     const newRole = member.role === "admin" ? "member" : "admin";
@@ -51,7 +84,7 @@ export function TeamMemberList({ members }: TeamMemberListProps) {
       {members.map((member) => (
         <div
           key={member.id}
-          className="flex items-center justify-between rounded-lg p-2 hover:bg-muted"
+          className={`flex items-center justify-between rounded-lg p-2 hover:bg-muted ${member.banned ? "opacity-50" : ""}`}
         >
           <div className="flex items-center gap-3">
             <UserAvatar
@@ -70,27 +103,54 @@ export function TeamMemberList({ members }: TeamMemberListProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {member.banned && (
+              <Badge variant="destructive">Inactief</Badge>
+            )}
             <Badge variant={member.role === "admin" ? "default" : "secondary"}>
               {member.role === "admin" ? "Beheerder" : "Teamlid"}
             </Badge>
             {!member.isCurrentUser && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                title={
-                  member.role === "admin"
-                    ? "Beheerder afnemen"
-                    : "Beheerder maken"
-                }
-                onClick={() => handleToggleRole(member)}
-              >
-                {member.role === "admin" ? (
-                  <ShieldOff className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                )}
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title="Welkomstmail sturen"
+                  onClick={() => handleSendWelcome(member)}
+                >
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title={
+                    member.role === "admin"
+                      ? "Beheerder afnemen"
+                      : "Beheerder maken"
+                  }
+                  onClick={() => handleToggleRole(member)}
+                >
+                  {member.role === "admin" ? (
+                    <ShieldOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title={member.banned ? "Heractiveren" : "Deactiveren"}
+                  onClick={() => handleToggleBan(member)}
+                >
+                  {member.banned ? (
+                    <UserCheck className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <UserX className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </>
             )}
           </div>
         </div>
