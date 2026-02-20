@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { Mail } from "lucide-react";
 
 const POLL_INTERVAL = 30_000; // 30 seconds
 
@@ -31,7 +31,7 @@ export function NotificationBellClient({ initialCount }: { initialCount: number 
       href="/inbox"
       className="relative flex items-center justify-center h-9 w-9 rounded-lg hover:bg-muted transition-colors"
     >
-      <Bell className="h-5 w-5 text-muted-foreground" />
+      <Mail className="h-5 w-5 text-muted-foreground" />
       {count > 0 && (
         <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-niet-beschikbaar px-1 text-[10px] font-bold text-white font-mono">
           {count > 99 ? "99+" : count}
