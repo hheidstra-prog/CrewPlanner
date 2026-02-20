@@ -45,9 +45,10 @@ export function ChatOverlay() {
     }
   }, [messages, isLoading]);
 
-  // Focus input when sheet opens
+  // Focus input when sheet opens (desktop only — on mobile the keyboard
+  // would push the suggestion chips out of view)
   useEffect(() => {
-    if (open) {
+    if (open && window.innerWidth >= 640) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [open]);
