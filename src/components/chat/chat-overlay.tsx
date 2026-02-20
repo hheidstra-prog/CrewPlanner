@@ -120,7 +120,7 @@ export function ChatOverlay() {
           >
             {messages.length === 0 && !isLoading ? (
               <div className="flex flex-col gap-2">
-                <p className="text-muted-foreground mb-2 text-sm">
+                <p className="text-muted-foreground mb-2 text-base">
                   Hoi! Ik ben je CrewPlanner Assistent. Probeer een van deze
                   suggesties:
                 </p>
@@ -128,7 +128,7 @@ export function ChatOverlay() {
                   <button
                     key={text}
                     onClick={() => handleSend(text)}
-                    className="rounded-lg border px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+                    className="rounded-lg border px-3 py-2.5 text-left text-base transition-colors hover:bg-accent"
                   >
                     {text}
                   </button>
@@ -146,7 +146,7 @@ export function ChatOverlay() {
                     <div
                       key={message.id}
                       className={cn(
-                        "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
+                        "max-w-[85%] rounded-2xl px-4 py-2.5 text-base",
                         message.role === "user"
                           ? "ml-auto bg-ocean text-white whitespace-pre-wrap"
                           : "mr-auto bg-muted max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-1 [&_li]:my-0.5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:font-semibold [&_a]:text-ocean [&_a]:underline"
@@ -161,22 +161,16 @@ export function ChatOverlay() {
                   );
                 })}
                 {isLoading && (
-                  <div className="mr-auto flex gap-1 rounded-2xl bg-muted px-4 py-3">
-                    <span className="animate-bounce text-muted-foreground text-sm [animation-delay:0ms]">
-                      .
-                    </span>
-                    <span className="animate-bounce text-muted-foreground text-sm [animation-delay:150ms]">
-                      .
-                    </span>
-                    <span className="animate-bounce text-muted-foreground text-sm [animation-delay:300ms]">
-                      .
-                    </span>
+                  <div className="mr-auto flex items-center gap-1.5 rounded-2xl bg-muted px-4 py-3">
+                    <span className="size-2 animate-bounce rounded-full bg-foreground/50 [animation-delay:0ms]" />
+                    <span className="size-2 animate-bounce rounded-full bg-foreground/50 [animation-delay:150ms]" />
+                    <span className="size-2 animate-bounce rounded-full bg-foreground/50 [animation-delay:300ms]" />
                   </div>
                 )}
               </div>
             )}
             {error && (
-              <div className="mt-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <div className="mt-2 rounded-lg bg-destructive/10 px-3 py-2 text-base text-destructive">
                 Er ging iets mis. Probeer het opnieuw.
               </div>
             )}
@@ -193,7 +187,7 @@ export function ChatOverlay() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Stel een vraag..."
-              className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ocean/50"
+              className="flex-1 rounded-lg border bg-background px-3 py-2 text-base outline-none focus:ring-2 focus:ring-ocean/50"
               disabled={isLoading}
             />
             <Button
