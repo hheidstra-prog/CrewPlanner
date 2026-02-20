@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { PushToggle } from "@/components/layout/push-toggle";
+import { ChatOverlay } from "@/components/chat/chat-overlay";
 
 export default function AppLayout({
   children,
@@ -29,6 +30,7 @@ export default function AppLayout({
         </main>
         <BottomNav />
       </div>
+      <ChatOverlay />
     </div>
   );
 }

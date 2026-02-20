@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types";
 import type { NotificationType, CommentParentType } from "@/generated/prisma";
-import { clerkClient } from "@clerk/nextjs/server";
 import { sendPushToUsers } from "@/lib/push";
 
 const refPaths: Record<CommentParentType, string> = {
@@ -71,6 +70,7 @@ export async function clearReadNotifications(): Promise<ActionResult> {
 
 /**
  * Create notifications for all members (non-admins), excluding the actor.
+ * Uses TeamLid.isTeamManager to determine role.
  */
 export async function notifyMembers({
   type,
@@ -86,12 +86,14 @@ export async function notifyMembers({
   actorId: string;
 }) {
   try {
-    const client = await clerkClient();
-    const { data: users } = await client.users.getUserList({ limit: 100 });
+    const teamLeden = await prisma.teamLid.findMany({
+      where: { isTeamManager: false },
+      select: { clerkUserId: true },
+    });
 
-    const memberIds = users
-      .filter((u) => u.publicMetadata?.role !== "admin" && u.id !== actorId)
-      .map((u) => u.id);
+    const memberIds = teamLeden
+      .map((tl) => tl.clerkUserId)
+      .filter((id) => id !== actorId);
 
     if (memberIds.length === 0) return;
 
@@ -160,7 +162,8 @@ export async function notifySpecificUsers({
 }
 
 /**
- * Create notifications for all admins (except the actor who triggered it).
+ * Create notifications for all admins (team managers), excluding the actor.
+ * Uses TeamLid.isTeamManager to determine admin role.
  */
 export async function notifyAdmins({
   type,
@@ -176,12 +179,14 @@ export async function notifyAdmins({
   actorId: string;
 }) {
   try {
-    const client = await clerkClient();
-    const { data: users } = await client.users.getUserList({ limit: 100 });
+    const teamLeden = await prisma.teamLid.findMany({
+      where: { isTeamManager: true },
+      select: { clerkUserId: true },
+    });
 
-    const adminIds = users
-      .filter((u) => u.publicMetadata?.role === "admin" && u.id !== actorId)
-      .map((u) => u.id);
+    const adminIds = teamLeden
+      .map((tl) => tl.clerkUserId)
+      .filter((id) => id !== actorId);
 
     if (adminIds.length === 0) return;
 

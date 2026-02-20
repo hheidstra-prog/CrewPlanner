@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageSquare, CalendarCheck, Hand, CheckCircle2, Calendar, FileText, ClipboardList, Bell, UserCheck } from "lucide-react";
+import { MessageSquare, CalendarCheck, Hand, CheckCircle2, Calendar, FileText, ClipboardList, Bell, UserCheck, Cake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { relatieveDatum } from "@/lib/utils";
 import { markAsRead } from "@/lib/actions/notifications";
@@ -17,6 +17,7 @@ const icons: Record<NotificationType, typeof MessageSquare> = {
   NIEUWE_TAAK: ClipboardList,
   HERINNERING: Bell,
   TAAK_TOEGEWEZEN: UserCheck,
+  VERJAARDAG: Cake,
 };
 
 const iconColors: Record<NotificationType, string> = {
@@ -29,6 +30,7 @@ const iconColors: Record<NotificationType, string> = {
   NIEUWE_TAAK: "text-twijfel",
   HERINNERING: "text-twijfel",
   TAAK_TOEGEWEZEN: "text-ocean",
+  VERJAARDAG: "text-twijfel",
 };
 
 const refPaths: Record<CommentParentType, string> = {
@@ -44,7 +46,10 @@ interface NotificationItemProps {
 
 export function NotificationItem({ notification, actorName }: NotificationItemProps) {
   const Icon = icons[notification.type];
-  const href = `${refPaths[notification.referenceType]}/${notification.referenceId}`;
+  // Birthday notifications link to dashboard instead of a specific entity
+  const href = notification.type === "VERJAARDAG"
+    ? "/"
+    : `${refPaths[notification.referenceType]}/${notification.referenceId}`;
 
   const handleClick = async () => {
     if (!notification.read) {

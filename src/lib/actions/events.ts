@@ -8,7 +8,6 @@ import type { ActionResult } from "@/lib/types";
 import { notifyAdmins, notifySpecificUsers } from "@/lib/actions/notifications";
 import { BESCHIKBAARHEID_LABELS } from "@/lib/constants";
 import type { BeschikbaarheidStatus } from "@/generated/prisma";
-import { clerkClient } from "@clerk/nextjs/server";
 import { sendEventInviteEmails } from "@/lib/actions/emails";
 
 function combineDateTime(dateStr: string, timeStr?: string): Date | null {
@@ -19,9 +18,10 @@ function combineDateTime(dateStr: string, timeStr?: string): Date | null {
 }
 
 async function getAllUserIds(): Promise<string[]> {
-  const client = await clerkClient();
-  const { data: users } = await client.users.getUserList({ limit: 100 });
-  return users.map((u) => u.id);
+  const teamLeden = await prisma.teamLid.findMany({
+    select: { clerkUserId: true },
+  });
+  return teamLeden.map((tl) => tl.clerkUserId);
 }
 
 function parseHerinnering(value: string | undefined): number[] {

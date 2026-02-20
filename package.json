@@ -17,6 +17,8 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.46",
+    "@ai-sdk/react": "^3.0.96",
     "@clerk/localizations": "^3.35.5",
     "@clerk/nextjs": "^6.37.5",
     "@hookform/resolvers": "^5.2.2",
@@ -24,6 +26,7 @@
     "@prisma/adapter-neon": "^7.4.0",
     "@prisma/client": "^7.4.0",
     "@vercel/blob": "^2.2.0",
+    "ai": "^6.0.94",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.574.0",
@@ -33,6 +36,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.1",
+    "react-markdown": "^10.1.0",
     "resend": "^6.9.2",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.1",

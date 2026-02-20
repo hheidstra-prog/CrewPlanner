@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveUsers } from "@/lib/users";
 import { TaskGroupManager } from "@/components/tasks/task-group-manager";
 import { TeamMemberList } from "@/components/admin/team-member-list";
+import type { TeamMember } from "@/components/admin/team-member-list";
 import { AddMemberForm } from "@/components/admin/add-member-form";
 import { StatsDashboard } from "@/components/admin/stats-dashboard";
 import {
@@ -24,9 +25,10 @@ export default async function BeheerPage() {
   if (!admin) redirect("/");
 
   const client = await clerkClient();
-  const [{ data: users }, taskGroups, participation, taskStats, responseTiming] =
+  const [{ data: users }, teamLeden, taskGroups, participation, taskStats, responseTiming] =
     await Promise.all([
       client.users.getUserList({ limit: 100 }),
+      prisma.teamLid.findMany(),
       prisma.taskGroup.findMany({
         include: { _count: { select: { tasks: true } } },
         orderBy: { createdAt: "desc" },
@@ -36,22 +38,39 @@ export default async function BeheerPage() {
       getResponseTimelinessStats(),
     ]);
 
-  const members = users.map((user) => {
-    const firstName = user.firstName ?? "";
-    const lastName = user.lastName ?? "";
+  // Build a map of TeamLid by clerkUserId for merging
+  const teamLidMap = new Map(teamLeden.map((tl) => [tl.clerkUserId, tl]));
+
+  const members: TeamMember[] = users.map((user) => {
+    const teamLid = teamLidMap.get(user.id);
+    const firstName = teamLid?.voornaam ?? user.firstName ?? "";
+    const lastName = teamLid?.achternaam ?? user.lastName ?? "";
+    const fullName = [firstName, lastName].filter(Boolean).join(" ") || "Onbekend";
+    const initials =
+      [firstName, lastName]
+        .filter(Boolean)
+        .map((n) => n[0]?.toUpperCase())
+        .join("") || "?";
+
     return {
       id: user.id,
-      fullName: [firstName, lastName].filter(Boolean).join(" ") || "Onbekend",
-      initials:
-        [firstName, lastName]
-          .filter(Boolean)
-          .map((n) => n[0]?.toUpperCase())
-          .join("") || "?",
-      email: user.emailAddresses[0]?.emailAddress ?? "",
+      fullName,
+      initials,
+      email: teamLid?.email ?? user.emailAddresses[0]?.emailAddress ?? "",
       imageUrl: user.imageUrl,
       role: ((user.publicMetadata?.role as string) ?? "member") as "admin" | "member",
       banned: user.banned,
       isCurrentUser: user.id === currentUserId,
+      teamLidId: teamLid?.id,
+      voornaam: firstName,
+      achternaam: lastName,
+      straat: teamLid?.straat ?? null,
+      postcode: teamLid?.postcode ?? null,
+      woonplaats: teamLid?.woonplaats ?? null,
+      geboortedatum: teamLid?.geboortedatum
+        ? teamLid.geboortedatum.toISOString().split("T")[0]
+        : null,
+      isTeamManager: teamLid?.isTeamManager ?? false,
     };
   });
 
