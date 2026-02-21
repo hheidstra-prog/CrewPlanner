@@ -63,11 +63,12 @@ src/
 │       ├── notifications/     # Notification count
 │       ├── push/              # Push subscribe/unsubscribe endpoints
 │       ├── calendar/[token]/  # iCal subscription endpoint (.ics feed)
+│       ├── calendar/event/[id]/ # Single event .ics download (for email links)
 │       ├── chat/             # AI chat API route (streamText + tools)
 │       ├── cron/herinneringen/# Daily reminder cron job
 │       └── cron/verjaardagen/ # Daily birthday notification cron job
 ├── components/
-│   ├── events/                # EventForm, EventCard, AvailabilityButtons, AvailabilityOverview, CalendarSubscribe
+│   ├── events/                # EventForm, EventCard, EventCardActions, EventList, AvailabilityButtons, AvailabilityOverview, CalendarSubscribe
 │   ├── posts/                 # PostForm, PostCard
 │   ├── tasks/                 # TaskForm, TaskCard, TaskActions, TaskGroupManager
 │   ├── comments/              # CommentForm, CommentThread
@@ -148,7 +149,7 @@ src/
 
 ### Event Invitations
 - `EventUitnodiging` join table — admins select which members to invite per event
-- `MemberPicker` component with "Alle leden" toggle vs manual selection
+- `MemberPicker` component with select all/deselect all and individual member checkboxes
 - Members only see events they're invited to; admins see all
 - Response ratio based on invited count (not global member count)
 - "Niet gereageerd" section shows non-responders on event detail
@@ -222,7 +223,7 @@ src/
 - `CalendarSubscribe` client component (`src/components/events/calendar-subscribe.tsx`):
   - "Agenda" button on events page (visible to all users, next to "Nieuw evenement" for admins)
   - Dialog with subscription URL, copy-to-clipboard button, and "Link vernieuwen" option
-- **Add to Calendar in emails**: Event invite emails include "Toevoegen aan agenda" button (Google Calendar link with pre-filled title, date, location, description)
+- **Add to Calendar in emails**: Event invite emails include "Toevoegen aan agenda" button — downloads `.ics` file via `/api/calendar/event/[id]` (universal: works with Google Calendar, Outlook, Apple Calendar)
 - Calendar apps (Google Calendar, Apple Calendar, Outlook) can subscribe via URL and auto-sync
 
 ### Admin Member Management (Complete)
@@ -243,7 +244,7 @@ src/
 
 ### Untracked files (not committed)
 - `scripts/seed-members.ts` — Seeds 14 team members (Clerk users + TeamLid records)
-- `scripts/seed-events.ts` — Seeds 21 events with invitations for all members
+- `scripts/seed-events.ts` — Seeds 19 events (no invitations — add members via edit page when ready)
 - `scripts/seed-reminders.ts` — Seeds `EventHerinneringLog` entries for existing events (testing tool)
 - `scripts/inspect-events.ts` — Inspects events with invitations, responses, and reminder logs (debugging tool)
 - `scripts/seed-test-scenario.ts` — Creates a full test event with invited users, varied responses, and reminder logs
@@ -251,18 +252,22 @@ src/
 
 ---
 
-## Phase 4 (In Progress) — AI Assistant
+## Phase 4 (Complete) — AI Assistant
 
 ### AI Chat Assistant (Complete)
 - Vercel AI SDK v6 (`ai`, `@ai-sdk/anthropic`, `@ai-sdk/react`) with Claude Sonnet tool use
-- `POST /api/chat` route: Clerk auth, in-memory rate limiting (20 messages/hour/user), `streamText` → `toUIMessageStreamResponse()`
+- `POST /api/chat` route: Clerk auth, in-memory rate limiting (50 messages/hour/user), `streamText` → `toUIMessageStreamResponse()`
+- `convertToModelMessages()` converts UIMessages (parts format) to ModelMessages (content format) for `streamText`
 - `createTools(userId, isAdmin)` in `src/lib/ai/tools.ts` — 16 tools total:
   - **Read tools** (12): `getUpcomingEvents`, `getEventDetails`, `getMyPendingEvents`, `getTasks`, `getTaskDetails`, `getPosts`, `getPostDetails`, `getComments`, `getTaskGroups`, `getTeamMembers`, `getMySummary`, `searchAll`, `getContributionStats`
   - **Write tools** (4): `setMyAvailability`, `claimTask`, `completeTask`, `addComment`
+- `getTeamMembers` tool reads from TeamLid (not Clerk)
 - Tools reuse existing queries (`queries/*.ts`) and server actions (`actions/*.ts`) directly
 - Write tools construct `FormData` programmatically and call server actions — auth is automatic via Clerk cookies
-- System prompt: Dutch, includes user name/role/date, instructs always-confirm before write actions
+- **Role-aware system prompt**: different instructions for team managers (team overview, stats, non-responders) vs team members (own pending events, reminders, open tasks)
+- System prompt instructs markdown formatting (lists, bold) for structured responses
 - `ChatOverlay` client component: floating button (bottom-right, above BottomNav on mobile) → Sheet panel with suggestion chips, message list, input
+- Assistant messages rendered with `react-markdown` for proper list/bold/link formatting
 - `useChat` from `@ai-sdk/react` manages messages and streaming
 - Multi-step tool use via `stopWhen: stepCountIs(5)` — allows lookup → confirm → execute flows
 - **Deploy note**: `ANTHROPIC_API_KEY` must be set in Vercel env vars
@@ -305,7 +310,53 @@ src/
 
 ### Data Seeding
 - `scripts/seed-members.ts` — Seeds 14 team members (Clerk users + TeamLid records), no emails sent
-- `scripts/seed-events.ts` — Seeds 21 events with invitations for all members, no emails sent
+- `scripts/seed-events.ts` — Seeds 19 events (no invitations, no reminders) — admins add members via edit page when ready to go live
+
+---
+
+## Phase 6 (Complete) — UX Improvements & Polish
+
+### Event Card Admin Actions
+- Edit (pencil) and delete (trash) buttons directly on event cards, visible to admins only
+- `EventCardActions` client component with confirmation dialog for delete
+- Buttons stop event propagation — clicking edit/delete doesn't navigate to event detail
+
+### Event List Search
+- Client-side search input on events page, filters by title and location
+- `EventList` client component wraps tabs + search, receives pre-fetched data from server
+- No server round-trips — instant filtering as you type
+
+### Event Edit Notifications
+- `updateEvent` now detects newly added members and sends them notifications + invite emails
+- Previously invited members are not re-notified
+- Fix: deselecting all members no longer silently re-invites everyone (empty string vs undefined handling)
+
+### MemberPicker Simplification
+- Removed confusing "Alle leden" toggle button
+- Member list always visible with "Selecteer alle" / "Deselecteer alle" at top
+- Counter shows "X van Y" selected members
+
+### Universal Calendar Links in Emails
+- Replaced Google Calendar-only link with universal `.ics` file download
+- New endpoint: `GET /api/calendar/event/[id]` serves single-event `.ics` file
+- Works with Outlook, Apple Calendar, Google Calendar, and any other calendar app
+
+### Chat UX Improvements
+- Disabled auto-focus on mobile (< 640px) — suggestion chips stay visible when sheet opens
+- Increased text size from `text-sm` to `text-base` for better outdoor readability
+- Loading indicator: solid bouncing dots instead of barely-visible text dots
+- Rate limit increased from 20 to 50 messages/hour/user
+
+### Sign-up Disabled
+- Sign-up link hidden on login page via Clerk `appearance.elements.footerAction` display none
+- Members are created exclusively by admins on the Beheer page
+
+### Inbox Icon
+- Changed inbox notification icon from Bell to Mail to avoid confusion with push toggle bell
+
+### Team Member Manual
+- `docs/handleiding-teamlid.md` — Dutch user manual for team members
+- Covers all member-facing features with placeholder markers for screenshots
 
 ---
 
