@@ -6,6 +6,7 @@ import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/lib/constants";
 import { formatDatumKort, formatTijd, relatieveDatum } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { ExpandableAvailability } from "./expandable-availability";
+import { EventCardActions } from "./event-card-actions";
 import type { EventWithBeschikbaarheid } from "@/lib/types";
 import type { ResolvedUser } from "@/lib/users";
 
@@ -13,6 +14,7 @@ interface EventCardProps {
   event: EventWithBeschikbaarheid;
   currentUserId?: string;
   usersMap?: Record<string, ResolvedUser>;
+  isAdmin?: boolean;
 }
 
 function daysUntil(date: Date): number {
@@ -39,7 +41,7 @@ function getDeadlineUrgency(event: EventWithBeschikbaarheid) {
   return "ok";
 }
 
-export function EventCard({ event, currentUserId, usersMap }: EventCardProps) {
+export function EventCard({ event, currentUserId, usersMap, isAdmin }: EventCardProps) {
   const totalInvited = event.uitnodigingen.length;
   const beschikbaar = event.beschikbaarheid.filter((b) => b.status === "BESCHIKBAAR").length;
   const nietBeschikbaar = event.beschikbaarheid.filter((b) => b.status === "NIET_BESCHIKBAAR").length;
@@ -210,11 +212,14 @@ export function EventCard({ event, currentUserId, usersMap }: EventCardProps) {
               </div>
             </div>
 
-            {currentUserId && !userResponse && (
-              <span className="shrink-0 mt-1 rounded-full bg-twijfel-light px-2.5 py-1 text-xs font-medium text-twijfel">
-                Reageer
-              </span>
-            )}
+            <div className="flex shrink-0 items-center gap-1 mt-1">
+              {currentUserId && !userResponse && (
+                <span className="rounded-full bg-twijfel-light px-2.5 py-1 text-xs font-medium text-twijfel">
+                  Reageer
+                </span>
+              )}
+              {isAdmin && <EventCardActions eventId={event.id} />}
+            </div>
           </div>
         </CardContent>
       </Card>

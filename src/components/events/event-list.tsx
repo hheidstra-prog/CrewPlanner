@@ -16,6 +16,7 @@ interface EventListProps {
   past: EventWithBeschikbaarheid[];
   currentUserId: string;
   usersMap: Record<string, ResolvedUser>;
+  isAdmin?: boolean;
 }
 
 const eventTypes = Object.keys(EVENT_TYPE_LABELS) as EventType[];
@@ -30,7 +31,7 @@ function filterEvents(events: EventWithBeschikbaarheid[], query: string) {
   );
 }
 
-export function EventList({ upcoming, past, currentUserId, usersMap }: EventListProps) {
+export function EventList({ upcoming, past, currentUserId, usersMap, isAdmin }: EventListProps) {
   const [search, setSearch] = useState("");
 
   const filteredUpcoming = filterEvents(upcoming, search);
@@ -65,6 +66,7 @@ export function EventList({ upcoming, past, currentUserId, usersMap }: EventList
             past={filteredPast}
             currentUserId={currentUserId}
             usersMap={usersMap}
+            isAdmin={isAdmin}
           />
         </TabsContent>
 
@@ -75,6 +77,7 @@ export function EventList({ upcoming, past, currentUserId, usersMap }: EventList
               past={filteredPast.filter((e) => e.type === type)}
               currentUserId={currentUserId}
               usersMap={usersMap}
+              isAdmin={isAdmin}
               typeLabel={EVENT_TYPE_LABELS[type].toLowerCase()}
             />
           </TabsContent>
@@ -89,12 +92,14 @@ function EventTabContent({
   past,
   currentUserId,
   usersMap,
+  isAdmin,
   typeLabel,
 }: {
   upcoming: EventWithBeschikbaarheid[];
   past: EventWithBeschikbaarheid[];
   currentUserId: string;
   usersMap: Record<string, ResolvedUser>;
+  isAdmin?: boolean;
   typeLabel?: string;
 }) {
   const label = typeLabel ?? "evenement";
@@ -126,6 +131,7 @@ function EventTabContent({
             event={event}
             currentUserId={currentUserId}
             usersMap={usersMap}
+            isAdmin={isAdmin}
           />
         ))
       )}

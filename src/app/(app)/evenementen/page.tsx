@@ -61,6 +61,7 @@ export default async function EvenementenPage() {
         past={past}
         currentUserId={userId}
         usersMap={usersMap}
+        isAdmin={admin}
       />
     </div>
   );
