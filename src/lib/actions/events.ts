@@ -106,7 +106,7 @@ export async function createEvent(formData: FormData): Promise<ActionResult> {
 
 export async function updateEvent(id: string, formData: FormData): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const userId = await requireAdmin();
     const raw = Object.fromEntries(formData);
     const data = eventSchema.parse(raw);
 
@@ -118,6 +118,14 @@ export async function updateEvent(id: string, formData: FormData): Promise<Actio
       : uitgenodigdenRaw.trim()
         ? uitgenodigdenRaw.split(",").filter(Boolean)
         : [];
+
+    // Find previously invited users to detect newly added members
+    const previousInvitations = await prisma.eventUitnodiging.findMany({
+      where: { eventId: id },
+      select: { userId: true },
+    });
+    const previousIds = new Set(previousInvitations.map((u) => u.userId));
+    const newlyInvitedIds = invitedIds.filter((uid) => !previousIds.has(uid));
 
     await prisma.event.update({
       where: { id },
@@ -139,6 +147,28 @@ export async function updateEvent(id: string, formData: FormData): Promise<Actio
     await prisma.eventUitnodiging.createMany({
       data: invitedIds.map((uid) => ({ eventId: id, userId: uid })),
     });
+
+    // Notify newly added members
+    if (newlyInvitedIds.length > 0) {
+      await notifySpecificUsers({
+        userIds: newlyInvitedIds,
+        type: "NIEUW_EVENEMENT",
+        message: `Nieuw evenement: "${data.titel}"`,
+        referenceType: "EVENT",
+        referenceId: id,
+        actorId: userId,
+      });
+
+      await sendEventInviteEmails({
+        eventId: id,
+        titel: data.titel,
+        datum: new Date(data.datum),
+        eindtijd: combineDateTime(data.datum, data.eindtijd),
+        locatie: data.locatie,
+        beschrijving: data.beschrijving,
+        userIds: newlyInvitedIds.filter((uid) => uid !== userId),
+      });
+    }
 
     // Delete + recreate reminders
     await prisma.eventHerinnering.deleteMany({ where: { eventId: id } });

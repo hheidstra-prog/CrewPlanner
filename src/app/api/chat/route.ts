@@ -7,7 +7,7 @@ import { createTools } from "@/lib/ai/tools";
 
 // Simple in-memory rate limiter (fine for 10-20 person team)
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
-const MAX_MESSAGES_PER_HOUR = 20;
+const MAX_MESSAGES_PER_HOUR = 50;
 
 function checkRateLimit(userId: string): boolean {
   const now = Date.now();
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
   if (!checkRateLimit(userId)) {
     return new Response(
-      "Je hebt het limiet van 20 berichten per uur bereikt. Probeer het later opnieuw.",
+      "Je hebt het limiet van 50 berichten per uur bereikt. Probeer het later opnieuw.",
       { status: 429 }
     );
   }

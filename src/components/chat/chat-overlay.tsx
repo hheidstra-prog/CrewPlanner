@@ -31,7 +31,7 @@ export function ChatOverlay() {
   const { messages, sendMessage, status, error } = useChat({
     onError: (err) => {
       if (err.message?.includes("429")) {
-        toast.error("Je hebt het limiet van 20 berichten per uur bereikt.");
+        toast.error("Je hebt het limiet van 50 berichten per uur bereikt.");
       }
     },
   });
