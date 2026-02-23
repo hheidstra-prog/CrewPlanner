@@ -346,6 +346,7 @@ src/
 - Increased text size from `text-sm` to `text-base` for better outdoor readability
 - Loading indicator: solid bouncing dots instead of barely-visible text dots
 - Rate limit increased from 20 to 50 messages/hour/user
+- Rate limit error shows meaningful Dutch message (inline + toast) instead of generic error
 
 ### Sign-up Disabled
 - Sign-up link hidden on login page via Clerk `appearance.elements.footerAction` display none
