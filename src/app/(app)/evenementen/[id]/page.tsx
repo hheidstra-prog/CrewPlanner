@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, MapPin, Clock, Pencil, ArrowLeft } from "lucide-react";
+import { CalendarDays, MapPin, Clock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { AvailabilityButtons } from "@/components/events/availability-buttons";
 import { AvailabilityOverview } from "@/components/events/availability-overview";
-import { DeleteEventButton } from "@/components/events/delete-event-button";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from "@/lib/constants";
 import { formatDatum, formatTijd, relatieveDatum } from "@/lib/utils";
 import { getEventById } from "@/lib/queries/events";
@@ -55,30 +54,17 @@ export default async function EvenementDetailPage({
         </Link>
       </div>
 
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <StatusBadge
-              label={EVENT_TYPE_LABELS[event.type]}
-              className={EVENT_TYPE_COLORS[event.type]}
-            />
-            <span className="text-sm text-muted-foreground">
-              {relatieveDatum(event.datum)}
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-navy">{event.titel}</h1>
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <StatusBadge
+            label={EVENT_TYPE_LABELS[event.type]}
+            className={EVENT_TYPE_COLORS[event.type]}
+          />
+          <span className="text-sm text-muted-foreground">
+            {relatieveDatum(event.datum)}
+          </span>
         </div>
-        {admin && (
-          <div className="flex gap-2">
-            <Link href={`/evenementen/${event.id}/bewerken`}>
-              <Button variant="outline" size="sm">
-                <Pencil className="mr-1 h-3.5 w-3.5" />
-                Bewerken
-              </Button>
-            </Link>
-            <DeleteEventButton eventId={event.id} />
-          </div>
-        )}
+        <h1 className="text-2xl font-bold text-navy">{event.titel}</h1>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
