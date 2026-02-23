@@ -171,7 +171,9 @@ export function ChatOverlay() {
             )}
             {error && (
               <div className="mt-2 rounded-lg bg-destructive/10 px-3 py-2 text-base text-destructive">
-                Er ging iets mis. Probeer het opnieuw.
+                {error.message?.includes("429")
+                  ? "Je hebt het limiet van 50 berichten per uur bereikt. Probeer het later opnieuw."
+                  : "Er ging iets mis. Probeer het opnieuw."}
               </div>
             )}
           </div>
