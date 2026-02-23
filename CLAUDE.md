@@ -393,9 +393,63 @@ npm run db:seed      # Seed database
 
 ## Future: Productizing CrewPlanner
 
-Currently CrewPlanner is a single-team app hosted on `crew-planner.vercel.app` with email sending via `info@SkutsjeEbenhaezer.nl`. If this app were to become a product for multiple teams:
+Currently CrewPlanner is a single-team app hosted on `crew-planner.vercel.app` with email sending via `info@SkutsjeEbenhaezer.nl`. Below is a comprehensive list of changes needed to turn this into a multi-team SaaS product.
 
-- **Dedicated email domain**: Set up a dedicated sending domain (e.g. `crewplanner.nl` or `crewplanner.app`) with its own DNS/SPF/DKIM records in Resend. The current setup uses the team's own domain which wouldn't work for a multi-tenant product.
-- **Multi-tenancy**: The current schema is single-team. A product version would need a `Team` model with team-scoped data, per-team billing, and team-specific settings.
-- **Custom domain / white-label**: Each team could have their own subdomain (e.g. `ebenhaezer.crewplanner.nl`).
-- **Dedicated Clerk instance**: Separate Clerk projects per tenant, or use Clerk Organizations for multi-team support.
+### Infrastructure & Domain
+- **Dedicated email domain**: Set up a product-level sending domain (e.g. `crewplanner.nl` or `mail.crewplanner.app`) with its own DNS/SPF/DKIM records in Resend. The current setup uses the team's own domain which wouldn't work for a multi-tenant product.
+- **Product domain**: Register and configure `crewplanner.nl` or similar as the primary product domain.
+- **Custom subdomains / white-label**: Each team could have their own subdomain (e.g. `ebenhaezer.crewplanner.nl`) via Vercel wildcard domains.
+
+### Multi-Tenancy (Database)
+- **`Team` model**: Central model with team name, slug (for subdomain), logo, settings, subscription tier, created date.
+- **`TeamMembership` model**: Join table between users and teams (replaces current `TeamLid`), supporting role per team (admin, member). A user could be in multiple teams.
+- **Scope all data to team**: Every model (`Event`, `Task`, `Post`, `Notification`, etc.) needs a `teamId` foreign key. All queries must filter by current team.
+- **Team-scoped settings**: Reminder defaults, notification preferences, event types, email templates — configurable per team instead of hardcoded.
+- **Data isolation**: Ensure users can only access data from teams they belong to. Middleware or query-level enforcement.
+
+### Authentication & User Management
+- **Clerk Organizations**: Use Clerk's Organizations feature for multi-team support instead of separate Clerk projects. Handles team invitations, role management, and team switching natively.
+- **Team switching UI**: Header/sidebar selector to switch between teams for users in multiple teams.
+- **Self-service team creation**: Landing page → sign up → create team → invite members flow.
+- **Invitation flow**: Replace current admin-creates-Clerk-user approach with email invitation links that allow self-registration scoped to a team.
+
+### Onboarding & Landing Page
+- **Marketing site**: Public landing page explaining the product, pricing, features. Currently the entire app is behind auth.
+- **Onboarding wizard**: Guide new team admins through setup: team name, logo, invite members, create first event.
+- **Trial / freemium**: Time-limited trial or free tier with limited members/events.
+
+### Billing & Subscriptions
+- **Payment integration**: Stripe or similar for subscription billing.
+- **Pricing tiers**: e.g. Free (up to 10 members), Pro (unlimited members, AI assistant), Enterprise (white-label, priority support).
+- **Usage limits**: Enforce limits on members, events, AI messages, file storage per tier.
+- **Billing dashboard**: Team admins can manage subscription, view invoices, update payment method.
+
+### AI Assistant
+- **Per-team cost tracking**: Track AI API usage per team for billing purposes.
+- **Configurable rate limits**: Different limits per subscription tier instead of global 50/hour.
+- **Team-scoped tools**: AI tools must respect team boundaries — only access data from the current team.
+
+### Email & Notifications
+- **Dynamic FROM_EMAIL**: Send from `teamslug@mail.crewplanner.app` or a generic `noreply@crewplanner.app` instead of a team-specific domain.
+- **Email templates**: Allow teams to customize email content, branding, colors.
+- **Unsubscribe handling**: Per-user email preferences with one-click unsubscribe (required for compliance at scale).
+
+### Customization & Branding
+- **Team logo & colors**: Stored on Team model, applied to header, emails, PWA manifest.
+- **Custom event types**: Let teams define their own event types instead of hardcoded WEDSTRIJD/TRAINING/ONDERHOUD/SOCIAAL.
+- **Custom task categories**: Same for task groups.
+- **Language support**: Currently all Dutch — add i18n framework (e.g. `next-intl`) for multi-language support.
+
+### Admin & Operations
+- **Super-admin dashboard**: Platform-level admin panel to manage all teams, view usage, handle support.
+- **Analytics**: Team usage metrics, active users, retention — for product decisions.
+- **Audit logging**: Track who did what, when — important for larger teams and compliance.
+- **Data export**: Allow team admins to export their data (GDPR compliance).
+- **Team deletion**: Clean removal of all team data when a team leaves.
+
+### Technical Scaling
+- **Database**: Move from single Neon DB to connection pooling or per-team database isolation for large scale.
+- **Caching**: Add Redis for frequently accessed data (team settings, user sessions) instead of hitting DB on every request.
+- **Background jobs**: Move email sending, push notifications, and cron jobs to a proper job queue (e.g. Inngest, Trigger.dev) instead of Vercel cron + inline sends.
+- **File storage**: Per-team storage quotas on Vercel Blob.
+- **Rate limiting**: Move from in-memory to Redis-based rate limiting (in-memory resets on serverless cold starts).
