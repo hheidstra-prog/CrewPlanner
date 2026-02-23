@@ -388,3 +388,14 @@ npm run db:seed      # Seed database
 - Database schema changes: run `npx prisma db push` or deploy will use `prisma generate` in build script
 - Cron jobs configured in `vercel.json`
 - Make sure `RESEND_API_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `ANTHROPIC_API_KEY` are set in Vercel environment variables
+
+---
+
+## Future: Productizing CrewPlanner
+
+Currently CrewPlanner is a single-team app hosted on `crew-planner.vercel.app` with email sending via `info@SkutsjeEbenhaezer.nl`. If this app were to become a product for multiple teams:
+
+- **Dedicated email domain**: Set up a dedicated sending domain (e.g. `crewplanner.nl` or `crewplanner.app`) with its own DNS/SPF/DKIM records in Resend. The current setup uses the team's own domain which wouldn't work for a multi-tenant product.
+- **Multi-tenancy**: The current schema is single-team. A product version would need a `Team` model with team-scoped data, per-team billing, and team-specific settings.
+- **Custom domain / white-label**: Each team could have their own subdomain (e.g. `ebenhaezer.crewplanner.nl`).
+- **Dedicated Clerk instance**: Separate Clerk projects per tenant, or use Clerk Organizations for multi-team support.
