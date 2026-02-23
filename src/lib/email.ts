@@ -9,6 +9,6 @@ export function getResend(): Resend {
   return _resend;
 }
 
-export const FROM_EMAIL = "admin@virtalize.ai";
+export const FROM_EMAIL = "info@SkutsjeEbenhaezer.nl";
 
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://crew-planner.vercel.app";
