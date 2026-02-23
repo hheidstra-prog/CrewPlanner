@@ -320,6 +320,7 @@ src/
 - Edit (pencil) and delete (trash) buttons directly on event cards, visible to admins only
 - `EventCardActions` client component with confirmation dialog for delete
 - Buttons stop event propagation — clicking edit/delete doesn't navigate to event detail
+- Edit/delete buttons removed from event detail page (`/evenementen/[id]`) — card actions are the only entry point
 
 ### Event List Search
 - Client-side search input on events page, filters by title and location
@@ -365,6 +366,9 @@ src/
 
 - **Prisma client caching after schema changes**: After adding a new model and running `db:push` + `db:generate`, the dev server must be fully restarted. The global Prisma client singleton (`globalForPrisma.prisma`) caches the old client without the new model, causing `Cannot read properties of undefined (reading 'findUnique')` errors. A hot reload is not enough — kill and restart `npm run dev`.
 - **Tailwind `space-y` vs `flex gap`**: On list pages, `space-y-*` classes sometimes don't produce visible spacing. Use `flex flex-col gap-*` instead for reliable card spacing.
+- **Email sending fails silently**: All email functions in `src/lib/actions/emails.ts` are wrapped in try/catch and return early if `RESEND_API_KEY` is not set (`if (!process.env.RESEND_API_KEY) return;`). Errors are only logged to `console.error`. If emails aren't arriving, check: (1) `RESEND_API_KEY` is set in Vercel env vars, (2) the sending domain (`skutsjeebenhaezer.nl`) is verified in Resend, (3) Vercel function logs for `console.error` output.
+- **FROM_EMAIL casing**: The `FROM_EMAIL` in `src/lib/email.ts` must be lowercase (`info@skutsjeebenhaezer.nl`) to match the Resend verified domain.
+- **Clerk login emails from `noreply@accounts.dev`**: This is the default Clerk development instance sender. To change it, upgrade to a Clerk production instance or configure a custom email domain in Clerk dashboard (paid feature).
 
 ---
 
@@ -387,13 +391,14 @@ npm run db:seed      # Seed database
 - Push to `main` triggers automatic Vercel deployment
 - Database schema changes: run `npx prisma db push` or deploy will use `prisma generate` in build script
 - Cron jobs configured in `vercel.json`
-- Make sure `RESEND_API_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `ANTHROPIC_API_KEY` are set in Vercel environment variables
+- **Required Vercel env vars**: `RESEND_API_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `ANTHROPIC_API_KEY` — without `RESEND_API_KEY`, all email sending silently no-ops
+- **Resend domain**: `skutsjeebenhaezer.nl` must be verified in Resend dashboard with DNS records (SPF/DKIM) for emails to send successfully
 
 ---
 
 ## Future: Productizing CrewPlanner
 
-Currently CrewPlanner is a single-team app hosted on `crew-planner.vercel.app` with email sending via `info@SkutsjeEbenhaezer.nl`. Below is a comprehensive list of changes needed to turn this into a multi-team SaaS product.
+Currently CrewPlanner is a single-team app hosted on `crew-planner.vercel.app` with email sending via `info@skutsjeebenhaezer.nl`. Below is a comprehensive list of changes needed to turn this into a multi-team SaaS product.
 
 ### Infrastructure & Domain
 - **Dedicated email domain**: Set up a product-level sending domain (e.g. `crewplanner.nl` or `mail.crewplanner.app`) with its own DNS/SPF/DKIM records in Resend. The current setup uses the team's own domain which wouldn't work for a multi-tenant product.
