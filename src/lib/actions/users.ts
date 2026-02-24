@@ -189,6 +189,48 @@ export async function updateTeamMember(
       publicMetadata: { role: isTeamManager ? "admin" : "member" },
     });
 
+    // Sync email to Clerk if changed
+    if (email && email !== teamLid.email) {
+      try {
+        const user = await client.users.getUser(teamLid.clerkUserId);
+        const oldEmailAddress = user.emailAddresses.find(
+          (e) => e.emailAddress === teamLid.email
+        );
+
+        // Create new email address (verified, set as primary)
+        await client.emailAddresses.createEmailAddress({
+          userId: teamLid.clerkUserId,
+          emailAddress: email,
+          verified: true,
+          primary: true,
+        });
+
+        // Delete the old email address
+        if (oldEmailAddress) {
+          await client.emailAddresses.deleteEmailAddress(oldEmailAddress.id);
+        }
+      } catch (clerkError: unknown) {
+        // Revert TeamLid email if Clerk sync fails
+        await prisma.teamLid.update({
+          where: { id: teamLidId },
+          data: { email: teamLid.email },
+        });
+
+        if (
+          clerkError &&
+          typeof clerkError === "object" &&
+          "errors" in clerkError &&
+          Array.isArray((clerkError as { errors: unknown[] }).errors)
+        ) {
+          const clerkErrors = (clerkError as { errors: { code: string }[] }).errors;
+          if (clerkErrors.some((e) => e.code === "form_identifier_exists")) {
+            return { success: false, error: "Dit e-mailadres is al in gebruik bij een ander account" };
+          }
+        }
+        return { success: false, error: "Kon e-mailadres niet bijwerken in Clerk" };
+      }
+    }
+
     revalidatePath("/beheer");
     return { success: true };
   } catch (error) {
