@@ -218,7 +218,7 @@ export function EventCard({ event, currentUserId, usersMap, isAdmin }: EventCard
 
             <div className="flex shrink-0 items-center gap-1 mt-1">
               {currentUserId && !userResponse && (
-                <span className="rounded-full bg-twijfel-light px-2.5 py-1 text-xs font-medium text-twijfel">
+                <span className="rounded-full bg-navy px-3 py-1 text-sm font-medium text-white">
                   Reageer
                 </span>
               )}
