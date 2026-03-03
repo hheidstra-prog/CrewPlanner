@@ -24,12 +24,10 @@ async function getAllUserIds(): Promise<string[]> {
   return teamLeden.map((tl) => tl.clerkUserId);
 }
 
-function parseHerinnering(value: string | undefined): number[] {
-  if (!value || value === "geen") return [];
-  return value
-    .split(",")
-    .map((s) => parseInt(s.trim(), 10))
-    .filter((n) => !isNaN(n) && n > 0);
+function parseHerinnering(value: string | undefined): number | null {
+  if (!value || value === "geen") return null;
+  const n = parseInt(value, 10);
+  return !isNaN(n) && n > 0 ? n : null;
 }
 
 export async function createEvent(formData: FormData): Promise<ActionResult> {
@@ -65,14 +63,14 @@ export async function createEvent(formData: FormData): Promise<ActionResult> {
       },
     });
 
-    // Create reminder records
-    const herinneringDagen = parseHerinnering(data.herinnering);
-    if (herinneringDagen.length > 0) {
-      await prisma.eventHerinnering.createMany({
-        data: herinneringDagen.map((dagen) => ({
+    // Create reminder record
+    const herinneringInterval = parseHerinnering(data.herinnering);
+    if (herinneringInterval !== null) {
+      await prisma.eventHerinnering.create({
+        data: {
           eventId: event.id,
-          dagenNaAanmaak: dagen,
-        })),
+          dagenNaAanmaak: herinneringInterval,
+        },
       });
     }
 
@@ -170,15 +168,15 @@ export async function updateEvent(id: string, formData: FormData): Promise<Actio
       });
     }
 
-    // Delete + recreate reminders
+    // Delete + recreate reminder
     await prisma.eventHerinnering.deleteMany({ where: { eventId: id } });
-    const herinneringDagen = parseHerinnering(data.herinnering);
-    if (herinneringDagen.length > 0) {
-      await prisma.eventHerinnering.createMany({
-        data: herinneringDagen.map((dagen) => ({
+    const herinneringInterval = parseHerinnering(data.herinnering);
+    if (herinneringInterval !== null) {
+      await prisma.eventHerinnering.create({
+        data: {
           eventId: id,
-          dagenNaAanmaak: dagen,
-        })),
+          dagenNaAanmaak: herinneringInterval,
+        },
       });
     }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendReminderEmails } from "@/lib/actions/emails";
-import { formatDatum } from "@/lib/utils";
+import { sendPushToUsers } from "@/lib/push";
 
 export async function GET(request: Request) {
   // Verify cron secret
@@ -13,7 +13,8 @@ export async function GET(request: Request) {
   try {
     const now = new Date();
 
-    // Find all unsent reminders
+    // Find active reminders (verzonden: false) for upcoming events
+    // Old one-shot reminders (verzonden: true) are never picked up
     const herinneringen = await prisma.eventHerinnering.findMany({
       where: { verzonden: false },
       include: {
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
           include: {
             uitnodigingen: true,
             beschikbaarheid: true,
+            herinneringLogs: true,
           },
         },
       },
@@ -30,14 +32,18 @@ export async function GET(request: Request) {
 
     for (const herinnering of herinneringen) {
       const { event } = herinnering;
+      const interval = herinnering.dagenNaAanmaak;
 
-      // Calculate trigger date: event creation + X days
-      const triggerDate = new Date(event.createdAt);
-      triggerDate.setDate(triggerDate.getDate() + herinnering.dagenNaAanmaak);
-
-      // Only send if trigger date has passed and event is still upcoming
-      if (now < triggerDate) continue;
+      // Skip past events
       if (event.datum < now) continue;
+
+      // Skip events past their deadline
+      if (event.deadlineBeschikbaarheid && event.deadlineBeschikbaarheid < now) continue;
+
+      // Initial delay: event.createdAt + interval must have passed
+      const firstTrigger = new Date(event.createdAt);
+      firstTrigger.setDate(firstTrigger.getDate() + interval);
+      if (now < firstTrigger) continue;
 
       // Find non-responders: invited but no beschikbaarheid record
       const respondedUserIds = new Set(event.beschikbaarheid.map((b) => b.userId));
@@ -45,14 +51,30 @@ export async function GET(request: Request) {
         .map((u) => u.userId)
         .filter((id) => !respondedUserIds.has(id));
 
-      if (nonResponderIds.length === 0) {
-        // Everyone responded, mark as sent
-        await prisma.eventHerinnering.update({
-          where: { id: herinnering.id },
-          data: { verzonden: true, verzondenOp: now },
-        });
-        continue;
+      if (nonResponderIds.length === 0) continue;
+
+      // For each non-responder, check if enough time has passed since their last reminder
+      const intervalMs = interval * 24 * 60 * 60 * 1000;
+      const usersToRemind: string[] = [];
+
+      for (const userId of nonResponderIds) {
+        const userLogs = event.herinneringLogs
+          .filter((log) => log.userId === userId)
+          .sort((a, b) => b.verzondenOp.getTime() - a.verzondenOp.getTime());
+
+        if (userLogs.length === 0) {
+          // Never reminded — initial delay already passed, so send
+          usersToRemind.push(userId);
+        } else {
+          // Check if interval has passed since last reminder
+          const lastSent = userLogs[0].verzondenOp;
+          if (now.getTime() - lastSent.getTime() >= intervalMs) {
+            usersToRemind.push(userId);
+          }
+        }
       }
+
+      if (usersToRemind.length === 0) continue;
 
       // Send reminder emails
       const deadline = event.deadlineBeschikbaarheid ?? event.datum;
@@ -60,12 +82,19 @@ export async function GET(request: Request) {
         eventId: event.id,
         titel: event.titel,
         deadline,
-        userIds: nonResponderIds,
+        userIds: usersToRemind,
+      });
+
+      // Send push notifications
+      await sendPushToUsers(usersToRemind, {
+        title: "Herinnering",
+        body: `Reageer op "${event.titel}"`,
+        url: `/evenementen/${event.id}`,
       });
 
       // Create in-app notifications
       await prisma.notification.createMany({
-        data: nonResponderIds.map((userId) => ({
+        data: usersToRemind.map((userId) => ({
           userId,
           type: "HERINNERING" as const,
           message: `Herinnering: reageer op "${event.titel}"`,
@@ -77,25 +106,19 @@ export async function GET(request: Request) {
 
       // Log per-user reminder delivery
       await prisma.eventHerinneringLog.createMany({
-        data: nonResponderIds.map((userId) => ({
+        data: usersToRemind.map((userId) => ({
           eventId: event.id,
           userId,
         })),
       });
 
-      // Mark reminder as sent
-      await prisma.eventHerinnering.update({
-        where: { id: herinnering.id },
-        data: { verzonden: true, verzondenOp: now },
-      });
-
-      sent++;
+      sent += usersToRemind.length;
     }
 
     return NextResponse.json({
       ok: true,
       processed: herinneringen.length,
-      sent,
+      reminders_sent: sent,
     });
   } catch (error) {
     console.error("Cron herinneringen error:", error);

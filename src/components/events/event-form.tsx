@@ -44,16 +44,14 @@ function toTimeLocal(date: Date | string | null | undefined): string {
 
 function getDefaultHerinnering(herinneringen?: EventHerinnering[]): string {
   if (!herinneringen || herinneringen.length === 0) return "geen";
-  const dagen = herinneringen.map((h) => h.dagenNaAanmaak).sort((a, b) => a - b);
-  return dagen.join(",");
+  return String(herinneringen[0].dagenNaAanmaak);
 }
 
 const HERINNERING_OPTIONS = [
   { value: "geen", label: "Geen herinnering" },
-  { value: "2", label: "Na 2 dagen" },
-  { value: "3", label: "Na 3 dagen" },
-  { value: "5", label: "Na 5 dagen" },
-  { value: "2,5", label: "Na 2 en 5 dagen" },
+  { value: "2", label: "Elke 2 dagen" },
+  { value: "3", label: "Elke 3 dagen" },
+  { value: "5", label: "Elke 5 dagen" },
 ];
 
 export function EventForm({ event, members, invitedUserIds }: EventFormProps) {
