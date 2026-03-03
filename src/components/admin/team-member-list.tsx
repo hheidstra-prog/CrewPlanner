@@ -35,6 +35,8 @@ export interface TeamMember {
   woonplaats?: string | null;
   geboortedatum?: string | null;
   isTeamManager?: boolean;
+  welkomEmailVerstuurdOp?: string | null;
+  lastSignInAt?: string | null;
 }
 
 interface TeamMemberListProps {
@@ -54,6 +56,7 @@ export function TeamMemberList({ members }: TeamMemberListProps) {
     const result = await sendWelcomeEmail(member.id);
     if (result.success) {
       toast.success(`Welkomstmail verstuurd naar ${member.email}`);
+      router.refresh();
     } else {
       toast.error(result.error ?? "Er ging iets mis");
     }
@@ -123,6 +126,12 @@ export function TeamMemberList({ members }: TeamMemberListProps) {
     return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long" });
   };
 
+  const formatDateTime = (dateStr: string | null | undefined) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" });
+  };
+
   return (
     <>
       <div className="space-y-3">
@@ -150,6 +159,15 @@ export function TeamMemberList({ members }: TeamMemberListProps) {
                   {member.geboortedatum && (
                     <span> &middot; {formatDate(member.geboortedatum)}</span>
                   )}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {member.welkomEmailVerstuurdOp
+                    ? `Welkom verstuurd: ${formatDateTime(member.welkomEmailVerstuurdOp)}`
+                    : "Welkom nog niet verstuurd"}
+                  {" · "}
+                  {member.lastSignInAt
+                    ? `Laatst ingelogd: ${formatDateTime(member.lastSignInAt)}`
+                    : "Nog niet ingelogd"}
                 </p>
               </div>
             </div>

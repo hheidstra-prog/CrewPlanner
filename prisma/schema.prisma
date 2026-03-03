@@ -247,9 +247,10 @@ model TeamLid {
   postcode      String?
   woonplaats    String?
   geboortedatum DateTime?
-  isTeamManager Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  isTeamManager          Boolean   @default(false)
+  welkomEmailVerstuurdOp DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   @@map("team_leden")
 }

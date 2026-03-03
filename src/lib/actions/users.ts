@@ -330,6 +330,14 @@ export async function sendWelcomeEmail(userId: string): Promise<ActionResult> {
       html,
     });
 
+    // Track when welcome email was sent
+    if (teamLid) {
+      await prisma.teamLid.update({
+        where: { clerkUserId: userId },
+        data: { welkomEmailVerstuurdOp: new Date() },
+      });
+    }
+
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Er ging iets mis" };

@@ -71,6 +71,8 @@ export default async function BeheerPage() {
         ? teamLid.geboortedatum.toISOString().split("T")[0]
         : null,
       isTeamManager: teamLid?.isTeamManager ?? false,
+      welkomEmailVerstuurdOp: teamLid?.welkomEmailVerstuurdOp?.toISOString() ?? null,
+      lastSignInAt: user.lastSignInAt ? new Date(user.lastSignInAt).toISOString() : null,
     };
   });
 
