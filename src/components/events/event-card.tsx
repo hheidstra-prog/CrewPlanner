@@ -24,13 +24,15 @@ function daysUntil(date: Date): number {
 }
 
 function getDeadlineUrgency(event: EventWithBeschikbaarheid) {
-  const totalInvited = event.uitnodigingen.length;
+  const invitedIds = new Set(event.uitnodigingen.map((u) => u.userId));
+  const invitedResponses = event.beschikbaarheid.filter((b) => invitedIds.has(b.userId));
+  const totalInvited = invitedIds.size;
   const deadline = event.deadlineBeschikbaarheid ?? event.datum;
   const days = daysUntil(deadline);
-  const responded = event.beschikbaarheid.length;
+  const responded = invitedResponses.length;
   const responseRate = totalInvited > 0 ? responded / totalInvited : 0;
-  const beschikbaar = event.beschikbaarheid.filter((b) => b.status === "BESCHIKBAAR").length;
-  const nietBeschikbaar = event.beschikbaarheid.filter((b) => b.status === "NIET_BESCHIKBAAR").length;
+  const beschikbaar = invitedResponses.filter((b) => b.status === "BESCHIKBAAR").length;
+  const nietBeschikbaar = invitedResponses.filter((b) => b.status === "NIET_BESCHIKBAAR").length;
 
   if (days <= 2 && responseRate < 0.5) return "critical";
   if (days <= 3 && nietBeschikbaar > beschikbaar && responded >= 2) return "critical";
@@ -42,11 +44,13 @@ function getDeadlineUrgency(event: EventWithBeschikbaarheid) {
 }
 
 export function EventCard({ event, currentUserId, usersMap, isAdmin }: EventCardProps) {
-  const totalInvited = event.uitnodigingen.length;
-  const beschikbaar = event.beschikbaarheid.filter((b) => b.status === "BESCHIKBAAR").length;
-  const nietBeschikbaar = event.beschikbaarheid.filter((b) => b.status === "NIET_BESCHIKBAAR").length;
-  const twijfel = event.beschikbaarheid.filter((b) => b.status === "TWIJFEL").length;
-  const responded = event.beschikbaarheid.length;
+  const invitedIds = new Set(event.uitnodigingen.map((u) => u.userId));
+  const invitedResponses = event.beschikbaarheid.filter((b) => invitedIds.has(b.userId));
+  const totalInvited = invitedIds.size;
+  const beschikbaar = invitedResponses.filter((b) => b.status === "BESCHIKBAAR").length;
+  const nietBeschikbaar = invitedResponses.filter((b) => b.status === "NIET_BESCHIKBAAR").length;
+  const twijfel = invitedResponses.filter((b) => b.status === "TWIJFEL").length;
+  const responded = invitedResponses.length;
   const notResponded = Math.max(0, totalInvited - responded);
 
   const userResponse = currentUserId

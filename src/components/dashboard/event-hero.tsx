@@ -11,8 +11,9 @@ interface EventHeroProps {
 }
 
 export function EventHero({ event }: EventHeroProps) {
+  const invitedIds = new Set(event.uitnodigingen.map((u) => u.userId));
   const beschikbaar = event.beschikbaarheid.filter(
-    (b) => b.status === "BESCHIKBAAR"
+    (b) => invitedIds.has(b.userId) && b.status === "BESCHIKBAAR"
   ).length;
 
   return (
