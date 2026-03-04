@@ -86,11 +86,15 @@ export async function GET(request: Request) {
       });
 
       // Send push notifications
-      await sendPushToUsers(usersToRemind, {
-        title: "Herinnering",
-        body: `Reageer op "${event.titel}"`,
-        url: `/evenementen/${event.id}`,
-      });
+      try {
+        await sendPushToUsers(usersToRemind, {
+          title: "Herinnering",
+          body: `Reageer op "${event.titel}"`,
+          url: `/evenementen/${event.id}`,
+        });
+      } catch (pushError) {
+        console.error("Push notification error (non-fatal):", pushError);
+      }
 
       // Create in-app notifications
       await prisma.notification.createMany({
